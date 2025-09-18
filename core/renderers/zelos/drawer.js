@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -21,134 +10,118 @@
  */
 'use strict';
 
-goog.provide('Blockly.zelos.Drawer');
+goog.module('Blockly.zelos.Drawer');
 
-goog.require('Blockly.blockRendering.ConstantProvider');
-goog.require('Blockly.blockRendering.Drawer');
-goog.require('Blockly.blockRendering.Types');
-goog.require('Blockly.utils.object');
-goog.require('Blockly.zelos.RenderInfo');
+const BaseDrawer = goog.require('Blockly.blockRendering.Drawer');
+/* eslint-disable-next-line no-unused-vars */
+const PathObject = goog.requireType('Blockly.zelos.PathObject');
+/* eslint-disable-next-line no-unused-vars */
+const RenderInfo = goog.requireType('Blockly.zelos.RenderInfo');
+/* eslint-disable-next-line no-unused-vars */
+const Row = goog.requireType('Blockly.blockRendering.Row');
+const debug = goog.require('Blockly.blockRendering.debug');
+const object = goog.require('Blockly.utils.object');
+const svgPaths = goog.require('Blockly.utils.svgPaths');
+/* eslint-disable-next-line no-unused-vars */
+const {BlockSvg} = goog.requireType('Blockly.BlockSvg');
 
 
 /**
  * An object that draws a block based on the given rendering information.
- * @param {!Blockly.BlockSvg} block The block to render.
- * @param {!Blockly.zelos.RenderInfo} info An object containing all
+ * @param {!BlockSvg} block The block to render.
+ * @param {!RenderInfo} info An object containing all
  *   information needed to render this block.
  * @package
  * @constructor
- * @extends {Blockly.blockRendering.Drawer}
+ * @extends {BaseDrawer}
  */
-Blockly.zelos.Drawer = function(block, info) {
-  Blockly.zelos.Drawer.superClass_.constructor.call(this, block, info);
+const Drawer = function(block, info) {
+  Drawer.superClass_.constructor.call(this, block, info);
 };
-Blockly.utils.object.inherits(Blockly.zelos.Drawer,
-    Blockly.blockRendering.Drawer);
+object.inherits(Drawer, BaseDrawer);
 
 
 /**
  * @override
  */
-Blockly.zelos.Drawer.prototype.drawOutline_ = function() {
+Drawer.prototype.draw = function() {
+  const pathObject =
+      /** @type {!PathObject} */ (this.block_.pathObject);
+  pathObject.beginDrawing();
+  this.hideHiddenIcons_();
+  this.drawOutline_();
+  this.drawInternals_();
+
+  pathObject.setPath(this.outlinePath_ + '\n' + this.inlinePath_);
+  if (this.info_.RTL) {
+    pathObject.flipRTL();
+  }
+  if (debug.isDebuggerEnabled()) {
+    this.block_.renderingDebugger.drawDebug(this.block_, this.info_);
+  }
+  this.recordSizeOnBlock_();
+  if (this.info_.outputConnection) {
+    // Store the output connection shape type for parent blocks to use during
+    // rendering.
+    pathObject.outputShapeType = this.info_.outputConnection.shape.type;
+  }
+  pathObject.endDrawing();
+};
+
+/**
+ * @override
+ */
+Drawer.prototype.drawOutline_ = function() {
   if (this.info_.outputConnection &&
-      this.info_.outputConnection.isDynamic()) {
+      this.info_.outputConnection.isDynamicShape &&
+      !this.info_.hasStatementInput &&
+      !this.info_.bottomRow.hasNextConnection) {
     this.drawFlatTop_();
     this.drawRightDynamicConnection_();
     this.drawFlatBottom_();
     this.drawLeftDynamicConnection_();
   } else {
-    Blockly.zelos.Drawer.superClass_.drawOutline_.call(this);
+    Drawer.superClass_.drawOutline_.call(this);
   }
 };
 
 /**
- * Add steps for the top corner of the block, taking into account
- * details such as hats and rounded corners.
- * @protected
+ * @override
  */
-Blockly.zelos.Drawer.prototype.drawTop_ = function() {
-  var topRow = this.info_.topRow;
-  var elements = topRow.elements;
-
-  this.positionPreviousConnection_();
-  this.outlinePath_ +=
-      Blockly.utils.svgPaths.moveBy(topRow.xPos, this.info_.startY);
-  for (var i = 0, elem; (elem = elements[i]); i++) {
-    if (Blockly.blockRendering.Types.isLeftRoundedCorner(elem)) {
-      this.outlinePath_ +=
-          this.constants_.OUTSIDE_CORNERS.topLeft;
-    } else if (Blockly.blockRendering.Types.isRightRoundedCorner(elem)) {
-      this.outlinePath_ +=
-          this.constants_.OUTSIDE_CORNERS.topRight;
-    } else if (Blockly.blockRendering.Types.isPreviousConnection(elem)) {
-      this.outlinePath_ += elem.shape.pathLeft;
-    } else if (Blockly.blockRendering.Types.isHat(elem)) {
-      this.outlinePath_ += this.constants_.START_HAT.path;
-    } else if (Blockly.blockRendering.Types.isSpacer(elem)) {
-      this.outlinePath_ += Blockly.utils.svgPaths.lineOnAxis('h', elem.width);
-    }
-    // No branch for a square corner because it's a no-op.
+Drawer.prototype.drawLeft_ = function() {
+  if (this.info_.outputConnection &&
+      this.info_.outputConnection.isDynamicShape) {
+    this.drawLeftDynamicConnection_();
+  } else {
+    Drawer.superClass_.drawLeft_.call(this);
   }
-  this.outlinePath_ += Blockly.utils.svgPaths.lineOnAxis('v', topRow.height);
-};
-
-
-/**
- * Add steps for the bottom edge of a block, possibly including a notch
- * for the next connection
- * @protected
- */
-Blockly.zelos.Drawer.prototype.drawBottom_ = function() {
-  var bottomRow = this.info_.bottomRow;
-  var elems = bottomRow.elements;
-  this.positionNextConnection_();
-
-  var rightCornerYOffset = 0;
-  var outlinePath = '';
-  for (var i = elems.length - 1, elem; (elem = elems[i]); i--) {
-    if (Blockly.blockRendering.Types.isNextConnection(elem)) {
-      outlinePath += elem.shape.pathRight;
-    } else if (Blockly.blockRendering.Types.isLeftSquareCorner(elem)) {
-      outlinePath += Blockly.utils.svgPaths.lineOnAxis('H', bottomRow.xPos);
-    } else if (Blockly.blockRendering.Types.isLeftRoundedCorner(elem)) {
-      outlinePath += this.constants_.OUTSIDE_CORNERS.bottomLeft;
-    } else if (Blockly.blockRendering.Types.isRightRoundedCorner(elem)) {
-      outlinePath += this.constants_.OUTSIDE_CORNERS.bottomRight;
-      rightCornerYOffset = this.constants_.INSIDE_CORNERS.rightHeight;
-    } else if (Blockly.blockRendering.Types.isSpacer(elem)) {
-      outlinePath += Blockly.utils.svgPaths.lineOnAxis('h', elem.width * -1);
-    }
-  }
-
-  this.outlinePath_ +=
-        Blockly.utils.svgPaths.lineOnAxis('V',
-            bottomRow.baseline - rightCornerYOffset);
-  this.outlinePath_ += outlinePath;
 };
 
 /**
  * Add steps for the right side of a row that does not have value or
  * statement input connections.
- * @param {!Blockly.blockRendering.Row} row The row to draw the
+ * @param {!Row} row The row to draw the
  *     side of.
  * @protected
  */
-Blockly.zelos.Drawer.prototype.drawRightSideRow_ = function(row) {
-  if (row.type & Blockly.blockRendering.Types.getType('BEFORE_STATEMENT_SPACER_ROW')) {
-    var remainingHeight = row.height - this.constants_.INSIDE_CORNERS.rightWidth;
+Drawer.prototype.drawRightSideRow_ = function(row) {
+  if (row.height <= 0) {
+    return;
+  }
+  if (row.precedesStatement || row.followsStatement) {
+    const cornerHeight = this.constants_.INSIDE_CORNERS.rightHeight;
+    const remainingHeight =
+        row.height - (row.precedesStatement ? cornerHeight : 0);
     this.outlinePath_ +=
+        (row.followsStatement ? this.constants_.INSIDE_CORNERS.pathBottomRight :
+                                '') +
         (remainingHeight > 0 ?
-            Blockly.utils.svgPaths.lineOnAxis('V', row.yPos + remainingHeight) : '') +
-        this.constants_.INSIDE_CORNERS.pathTopRight;
-  } else if (row.type & Blockly.blockRendering.Types.getType('AFTER_STATEMENT_SPACER_ROW')) {
-    var remainingHeight = row.height - this.constants_.INSIDE_CORNERS.rightWidth;
-    this.outlinePath_ +=
-        this.constants_.INSIDE_CORNERS.pathBottomRight +
-        (remainingHeight > 0 ?
-            Blockly.utils.svgPaths.lineOnAxis('V', row.yPos + row.height) : '');
+             svgPaths.lineOnAxis('V', row.yPos + remainingHeight) :
+             '') +
+        (row.precedesStatement ? this.constants_.INSIDE_CORNERS.pathTopRight :
+                                 '');
   } else {
-    this.outlinePath_ +=
-        Blockly.utils.svgPaths.lineOnAxis('V', row.yPos + row.height);
+    this.outlinePath_ += svgPaths.lineOnAxis('V', row.yPos + row.height);
   }
 };
 
@@ -156,7 +129,7 @@ Blockly.zelos.Drawer.prototype.drawRightSideRow_ = function(row) {
  * Add steps to draw the right side of an output with a dynamic connection.
  * @protected
  */
-Blockly.zelos.Drawer.prototype.drawRightDynamicConnection_ = function() {
+Drawer.prototype.drawRightDynamicConnection_ = function() {
   this.outlinePath_ += this.info_.outputConnection.shape.pathRightDown(
       this.info_.outputConnection.height);
 };
@@ -165,7 +138,7 @@ Blockly.zelos.Drawer.prototype.drawRightDynamicConnection_ = function() {
  * Add steps to draw the left side of an output with a dynamic connection.
  * @protected
  */
-Blockly.zelos.Drawer.prototype.drawLeftDynamicConnection_ = function() {
+Drawer.prototype.drawLeftDynamicConnection_ = function() {
   this.positionOutputConnection_();
 
   this.outlinePath_ += this.info_.outputConnection.shape.pathUp(
@@ -180,34 +153,77 @@ Blockly.zelos.Drawer.prototype.drawLeftDynamicConnection_ = function() {
  * Add steps to draw a flat top row.
  * @protected
  */
-Blockly.zelos.Drawer.prototype.drawFlatTop_ = function() {
-  var topRow = this.info_.topRow;
+Drawer.prototype.drawFlatTop_ = function() {
+  const topRow = this.info_.topRow;
   this.positionPreviousConnection_();
 
-  this.outlinePath_ +=
-      Blockly.utils.svgPaths.moveBy(topRow.xPos, this.info_.startY);
+  this.outlinePath_ += svgPaths.moveBy(topRow.xPos, this.info_.startY);
 
-  this.outlinePath_ += Blockly.utils.svgPaths.lineOnAxis('h', topRow.width);
+  this.outlinePath_ += svgPaths.lineOnAxis('h', topRow.width);
 };
 
 /**
  * Add steps to draw a flat bottom row.
  * @protected
  */
-Blockly.zelos.Drawer.prototype.drawFlatBottom_ = function() {
-  var bottomRow = this.info_.bottomRow;
+Drawer.prototype.drawFlatBottom_ = function() {
+  const bottomRow = this.info_.bottomRow;
   this.positionNextConnection_();
 
-  this.outlinePath_ +=
-    Blockly.utils.svgPaths.lineOnAxis('V', bottomRow.baseline);
+  this.outlinePath_ += svgPaths.lineOnAxis('V', bottomRow.baseline);
 
-  this.outlinePath_ += Blockly.utils.svgPaths.lineOnAxis('h', -bottomRow.width);
+  this.outlinePath_ += svgPaths.lineOnAxis('h', -bottomRow.width);
 };
 
 /**
  * @override
  */
-Blockly.zelos.Drawer.prototype.drawInlineInput_ = function(input) {
-  // Don't draw an inline input.
+Drawer.prototype.drawInlineInput_ = function(input) {
   this.positionInlineInputConnection_(input);
+
+  const inputName = input.input.name;
+  if (input.connectedBlock || this.info_.isInsertionMarker) {
+    return;
+  }
+
+  const width = input.width - (input.connectionWidth * 2);
+  const height = input.height;
+  const yPos = input.centerline - height / 2;
+
+  const connectionRight = input.xPos + input.connectionWidth;
+
+  const outlinePath = svgPaths.moveTo(connectionRight, yPos) +
+      svgPaths.lineOnAxis('h', width) +
+      input.shape.pathRightDown(input.height) +
+      svgPaths.lineOnAxis('h', -width) + input.shape.pathUp(input.height) + 'z';
+  this.block_.pathObject.setOutlinePath(inputName, outlinePath);
 };
+
+/**
+ * @override
+ */
+Drawer.prototype.drawStatementInput_ = function(row) {
+  const input = row.getLastInput();
+  // Where to start drawing the notch, which is on the right side in LTR.
+  const x = input.xPos + input.notchOffset + input.shape.width;
+
+  const innerTopLeftCorner = input.shape.pathRight +
+      svgPaths.lineOnAxis(
+          'h', -(input.notchOffset - this.constants_.INSIDE_CORNERS.width)) +
+      this.constants_.INSIDE_CORNERS.pathTop;
+
+  const innerHeight = row.height - (2 * this.constants_.INSIDE_CORNERS.height);
+
+  const innerBottomLeftCorner = this.constants_.INSIDE_CORNERS.pathBottom +
+      svgPaths.lineOnAxis(
+          'h', (input.notchOffset - this.constants_.INSIDE_CORNERS.width)) +
+      (input.connectedBottomNextConnection ? '' : input.shape.pathLeft);
+
+  this.outlinePath_ += svgPaths.lineOnAxis('H', x) + innerTopLeftCorner +
+      svgPaths.lineOnAxis('v', innerHeight) + innerBottomLeftCorner +
+      svgPaths.lineOnAxis('H', row.xPos + row.width);
+
+  this.positionStatementInputConnection_(row);
+};
+
+exports = Drawer;

@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -26,18 +15,32 @@ module.exports = runMochaTestsInBrowser;
  * Runs the Mocha tests in this directory in Chrome. It uses webdriverio to
  * launch Chrome and load index.html. Outputs a summary of the test results
  * to the console.
- * @return 0 on success, 1 on failure.
+ * @return {number} 0 on success, 1 on failure.
  */
 async function runMochaTestsInBrowser() {
   var options = {
-      capabilities: {
-          browserName: 'chrome'
-      }
+    capabilities: {
+      browserName: 'chrome'
+    },
+    services: [
+      ['selenium-standalone']
+    ],
+    logLevel: 'warn'
   };
-  // Run in headless mode on Travis.
-  if (process.env.TRAVIS_CI) {
+  // Run in headless mode on Github Actions.
+  if (process.env.CI) {
     options.capabilities['goog:chromeOptions'] = {
-      args: ['--headless', '--no-sandbox', '--disable-dev-shm-usage']
+      args: [
+        '--headless', '--no-sandbox', '--disable-dev-shm-usage',
+        '--allow-file-access-from-files',
+      ]
+    };
+  } else {
+    // --disable-gpu is needed to prevent Chrome from hanging on Linux with
+    // NVIDIA drivers older than v295.20. See 
+    // https://github.com/google/blockly/issues/5345 for details.
+    options.capabilities['goog:chromeOptions'] = {
+      args: ['--allow-file-access-from-files', '--disable-gpu']
     };
   }
 
@@ -51,7 +54,9 @@ async function runMochaTestsInBrowser() {
     var elem = await browser.$('#failureCount');
     var text = await elem.getAttribute('tests_failed');
     return text != 'unset';
-  }, 6000);
+  }, {
+    timeout: 50000
+  });
 
   const elem = await browser.$('#failureCount');
   const numOfFailure = await elem.getAttribute('tests_failed');
@@ -61,7 +66,6 @@ async function runMochaTestsInBrowser() {
   console.log(numOfFailure + ' tests failed');
   console.log('============Blockly Mocha Test Summary=================');
   if (parseInt(numOfFailure) !== 0) {
-    await browser.deleteSession();
     return 1;
   }
   await browser.deleteSession();

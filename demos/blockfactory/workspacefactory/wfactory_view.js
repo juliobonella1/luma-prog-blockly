@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -215,13 +204,13 @@ WorkspaceFactoryView.prototype.moveTabToIndex =
 };
 
 /**
- * Given a category ID and color, use that color to color the left border of the
- * tab for that category.
- * @param {string} id The ID of the category to color.
+ * Given a category ID and colour, use that colour to colour the left border of
+ * the tab for that category.
+ * @param {string} id The ID of the category to colour.
  * @param {?string} colour The colour for to be used for the border of the tab,
  *   or null if none.  Must be a valid CSS string.
  */
-WorkspaceFactoryView.prototype.setBorderColor = function(id, colour) {
+WorkspaceFactoryView.prototype.setBorderColour = function(id, colour) {
   var style = this.tabMap[id].style;
   if (colour) {
     style.borderLeftWidth = '8px';
@@ -305,7 +294,7 @@ WorkspaceFactoryView.prototype.clearToolboxTabs = function() {
  * Given a set of blocks currently loaded user-generated shadow blocks, visually
  * marks them without making them actual shadow blocks (allowing them to still
  * be editable and movable).
- * @param {!Array.<!Blockly.Block>} blocks Array of user-generated shadow blocks
+ * @param {!Array<!Blockly.Block>} blocks Array of user-generated shadow blocks
  * currently loaded.
  */
 WorkspaceFactoryView.prototype.markShadowBlocks = function(blocks) {

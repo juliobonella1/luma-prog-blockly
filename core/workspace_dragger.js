@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2017 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -21,9 +10,12 @@
  */
 'use strict';
 
-goog.provide('Blockly.WorkspaceDragger');
+goog.module('Blockly.WorkspaceDragger');
 
-goog.require('Blockly.utils.Coordinate');
+const Coordinate = goog.require('Blockly.utils.Coordinate');
+/* eslint-disable-next-line no-unused-vars */
+const WorkspaceSvg = goog.requireType('Blockly.WorkspaceSvg');
+const common = goog.require('Blockly.common');
 
 
 /**
@@ -32,31 +24,45 @@ goog.require('Blockly.utils.Coordinate');
  * Note that the workspace itself manages whether or not it has a drag surface
  * and how to do translations based on that.  This simply passes the right
  * commands based on events.
- * @param {!Blockly.WorkspaceSvg} workspace The workspace to drag.
+ * @param {!WorkspaceSvg} workspace The workspace to drag.
  * @constructor
  */
-Blockly.WorkspaceDragger = function(workspace) {
+const WorkspaceDragger = function(workspace) {
   /**
-   * @type {!Blockly.WorkspaceSvg}
+   * @type {!WorkspaceSvg}
    * @private
    */
   this.workspace_ = workspace;
 
   /**
-   * The scroll position of the workspace at the beginning of the drag.
-   * Coordinate system: pixel coordinates.
-   * @type {!Blockly.utils.Coordinate}
+   * Whether horizontal scroll is enabled.
+   * @type {boolean}
    * @private
    */
-  this.startScrollXY_ = new Blockly.utils.Coordinate(
-      workspace.scrollX, workspace.scrollY);
+  this.horizontalScrollEnabled_ = this.workspace_.isMovableHorizontally();
+
+  /**
+   * Whether vertical scroll is enabled.
+   * @type {boolean}
+   * @private
+   */
+  this.verticalScrollEnabled_ = this.workspace_.isMovableVertically();
+
+  /**
+   * The scroll position of the workspace at the beginning of the drag.
+   * Coordinate system: pixel coordinates.
+   * @type {!Coordinate}
+   * @protected
+   */
+  this.startScrollXY_ = new Coordinate(workspace.scrollX, workspace.scrollY);
 };
 
 /**
  * Sever all links from this object.
  * @package
+ * @suppress {checkTypes}
  */
-Blockly.WorkspaceDragger.prototype.dispose = function() {
+WorkspaceDragger.prototype.dispose = function() {
   this.workspace_ = null;
 };
 
@@ -64,20 +70,20 @@ Blockly.WorkspaceDragger.prototype.dispose = function() {
  * Start dragging the workspace.
  * @package
  */
-Blockly.WorkspaceDragger.prototype.startDrag = function() {
-  if (Blockly.selected) {
-    Blockly.selected.unselect();
+WorkspaceDragger.prototype.startDrag = function() {
+  if (common.getSelected()) {
+    common.getSelected().unselect();
   }
   this.workspace_.setupDragSurface();
 };
 
 /**
  * Finish dragging the workspace and put everything back where it belongs.
- * @param {!Blockly.utils.Coordinate} currentDragDeltaXY How far the pointer has
+ * @param {!Coordinate} currentDragDeltaXY How far the pointer has
  *     moved from the position at the start of the drag, in pixel coordinates.
  * @package
  */
-Blockly.WorkspaceDragger.prototype.endDrag = function(currentDragDeltaXY) {
+WorkspaceDragger.prototype.endDrag = function(currentDragDeltaXY) {
   // Make sure everything is up to date.
   this.drag(currentDragDeltaXY);
   this.workspace_.resetDragSurface();
@@ -85,11 +91,22 @@ Blockly.WorkspaceDragger.prototype.endDrag = function(currentDragDeltaXY) {
 
 /**
  * Move the workspace based on the most recent mouse movements.
- * @param {!Blockly.utils.Coordinate} currentDragDeltaXY How far the pointer has
+ * @param {!Coordinate} currentDragDeltaXY How far the pointer has
  *     moved from the position at the start of the drag, in pixel coordinates.
  * @package
  */
-Blockly.WorkspaceDragger.prototype.drag = function(currentDragDeltaXY) {
-  var newXY = Blockly.utils.Coordinate.sum(this.startScrollXY_, currentDragDeltaXY);
-  this.workspace_.scroll(newXY.x, newXY.y);
+WorkspaceDragger.prototype.drag = function(currentDragDeltaXY) {
+  const newXY = Coordinate.sum(this.startScrollXY_, currentDragDeltaXY);
+
+  if (this.horizontalScrollEnabled_ && this.verticalScrollEnabled_) {
+    this.workspace_.scroll(newXY.x, newXY.y);
+  } else if (this.horizontalScrollEnabled_) {
+    this.workspace_.scroll(newXY.x, this.workspace_.scrollY);
+  } else if (this.verticalScrollEnabled_) {
+    this.workspace_.scroll(this.workspace_.scrollX, newXY.y);
+  } else {
+    throw new TypeError('Invalid state.');
+  }
 };
+
+exports = WorkspaceDragger;

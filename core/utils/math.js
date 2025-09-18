@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -27,7 +16,7 @@
  * @name Blockly.utils.math
  * @namespace
  */
-goog.provide('Blockly.utils.math');
+goog.module('Blockly.utils.math');
 
 
 /**
@@ -35,20 +24,24 @@ goog.provide('Blockly.utils.math');
  * Copied from Closure's goog.math.toRadians.
  * @param {number} angleDegrees Angle in degrees.
  * @return {number} Angle in radians.
+ * @alias Blockly.utils.math.toRadians
  */
-Blockly.utils.math.toRadians = function(angleDegrees) {
+const toRadians = function(angleDegrees) {
   return angleDegrees * Math.PI / 180;
 };
+exports.toRadians = toRadians;
 
 /**
  * Converts radians to degrees.
  * Copied from Closure's goog.math.toDegrees.
  * @param {number} angleRadians Angle in radians.
  * @return {number} Angle in degrees.
+ * @alias Blockly.utils.math.toDegrees
  */
-Blockly.utils.math.toDegrees = function(angleRadians) {
+const toDegrees = function(angleRadians) {
   return angleRadians * 180 / Math.PI;
 };
+exports.toDegrees = toDegrees;
 
 /**
  * Clamp the provided number between the lower bound and the upper bound.
@@ -56,12 +49,14 @@ Blockly.utils.math.toDegrees = function(angleRadians) {
  * @param {number} number The number to clamp.
  * @param {number} upperBound The desired upper bound.
  * @return {number} The clamped number.
+ * @alias Blockly.utils.math.clamp
  */
-Blockly.utils.math.clamp = function(lowerBound, number, upperBound) {
+const clamp = function(lowerBound, number, upperBound) {
   if (upperBound < lowerBound) {
-    var temp = upperBound;
+    const temp = upperBound;
     upperBound = lowerBound;
     lowerBound = temp;
   }
   return Math.max(lowerBound, Math.min(number, upperBound));
 };
+exports.clamp = clamp;

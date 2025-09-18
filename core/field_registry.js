@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -23,75 +12,61 @@
  */
 'use strict';
 
-goog.provide('Blockly.fieldRegistry');
+goog.module('Blockly.fieldRegistry');
 
+/* eslint-disable-next-line no-unused-vars */
+const Field = goog.requireType('Blockly.Field');
+/* eslint-disable-next-line no-unused-vars */
+const IRegistrableField = goog.requireType('Blockly.IRegistrableField');
+const registry = goog.require('Blockly.registry');
 
-/**
- * The set of all registered fields, keyed by field type as used in the JSON
- * definition of a block.
- * @type {!Object<string, !{fromJson: Function}>}
- * @private
- */
-Blockly.fieldRegistry.typeMap_ = {};
 
 /**
  * Registers a field type.
- * Blockly.fieldRegistry.fromJson uses this registry to
+ * fieldRegistry.fromJson uses this registry to
  * find the appropriate field type.
  * @param {string} type The field type name as used in the JSON definition.
- * @param {!{fromJson: Function}} fieldClass The field class containing a
+ * @param {!IRegistrableField} fieldClass The field class containing a
  *     fromJson function that can construct an instance of the field.
  * @throws {Error} if the type name is empty, the field is already
  *     registered, or the fieldClass is not an object containing a fromJson
  *     function.
  */
-Blockly.fieldRegistry.register = function(type, fieldClass) {
-  if ((typeof type != 'string') || (type.trim() == '')) {
-    throw Error('Invalid field type "' + type + '". The type must be a' +
-      ' non-empty string.');
-  }
-  if (Blockly.fieldRegistry.typeMap_[type]) {
-    throw Error('Error: Field "' + type + '" is already registered.');
-  }
-  if (!fieldClass || (typeof fieldClass.fromJson != 'function')) {
-    throw Error('Field "' + fieldClass + '" must have a fromJson function');
-  }
-  type = type.toLowerCase();
-  Blockly.fieldRegistry.typeMap_[type] = fieldClass;
+const register = function(type, fieldClass) {
+  registry.register(registry.Type.FIELD, type, fieldClass);
 };
+exports.register = register;
 
 /**
  * Unregisters the field registered with the given type.
  * @param {string} type The field type name as used in the JSON definition.
  */
-Blockly.fieldRegistry.unregister = function(type) {
-  if (Blockly.fieldRegistry.typeMap_[type]) {
-    delete Blockly.fieldRegistry.typeMap_[type];
-  } else {
-    console.warn('No field mapping for type "' + type +
-        '" found to unregister');
-  }
+const unregister = function(type) {
+  registry.unregister(registry.Type.FIELD, type);
 };
+exports.unregister = unregister;
 
 /**
  * Construct a Field from a JSON arg object.
  * Finds the appropriate registered field by the type name as registered using
- * Blockly.fieldRegistry.register.
+ * fieldRegistry.register.
  * @param {!Object} options A JSON object with a type and options specific
  *     to the field type.
- * @return {Blockly.Field} The new field instance or null if a field wasn't
+ * @return {?Field} The new field instance or null if a field wasn't
  *     found with the given type name
- * @package
  */
-Blockly.fieldRegistry.fromJson = function(options) {
-  var type = options['type'].toLowerCase();
-  var fieldClass = Blockly.fieldRegistry.typeMap_[type];
-  if (!fieldClass) {
-    console.warn('Blockly could not create a field of type ' + options['type'] +
-      '. The field is probably not being registered. This could be because' +
-      ' the file is not loaded, the field does not register itself (Issue' +
-      ' #1584), or the registration is not being reached.');
+const fromJson = function(options) {
+  const fieldObject = /** @type {?IRegistrableField} */ (
+      registry.getObject(registry.Type.FIELD, options['type']));
+  if (!fieldObject) {
+    console.warn(
+        'Blockly could not create a field of type ' + options['type'] +
+        '. The field is probably not being registered. This could be because' +
+        ' the file is not loaded, the field does not register itself (Issue' +
+        ' #1584), or the registration is not being reached.');
     return null;
   }
-  return fieldClass.fromJson(options);
+  return fieldObject.fromJson(options);
 };
+/** @package */
+exports.fromJson = fromJson;

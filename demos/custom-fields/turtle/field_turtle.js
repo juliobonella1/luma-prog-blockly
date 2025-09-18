@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -87,9 +76,6 @@ CustomFields.FieldTurtle.prototype.CURSOR = 'pointer';
 // How far to move the text to keep it to the right of the turtle.
 // May change if the turtle gets fancy enough.
 CustomFields.FieldTurtle.prototype.TEXT_OFFSET_X = 80;
-
-// Padding that the border rect adds around the turtle and its name.
-CustomFields.FieldTurtle.prototype.PADDING = Blockly.Field.X_PADDING;
 
 // These are the different options for our turtle. Being declared this way
 // means they are static, and not translatable. If you want to do something
@@ -250,9 +236,9 @@ CustomFields.FieldTurtle.prototype.render_ = function() {
       break;
     case 'Mask':
       this.mask_.style.display = '';
-      this.turtleGroup_.setAttribute('transform', 'translate(0,1.2)');
+      this.turtleGroup_.setAttribute('transform', 'translate(0,6)');
       this.textElement_.setAttribute('transform',
-          'translate(' + this.TEXT_OFFSET_X + ',4)');
+          'translate(' + this.TEXT_OFFSET_X + ',12)');
       break;
     case 'Propeller':
       this.propeller_.style.display = '';
@@ -320,8 +306,8 @@ CustomFields.FieldTurtle.prototype.updateSize_ = function() {
   var width = bbox.width;
   var height = bbox.height;
   if (this.borderRect_) {
-    width += this.PADDING;
-    height += this.PADDING;
+    width += this.constants_.FIELD_BORDER_RECT_X_PADDING * 2;
+    height += this.constants_.FIELD_BORDER_RECT_X_PADDING * 2;
     this.borderRect_.setAttribute('width', width);
     this.borderRect_.setAttribute('height', height);
   }
@@ -340,10 +326,8 @@ CustomFields.FieldTurtle.prototype.showEditor_ = function() {
 
   // These allow us to have the editor match the block's colour.
   var fillColour = this.sourceBlock_.getColour();
-  // This is technically a package function, meaning it could change.
-  var borderColours = this.sourceBlock_.getColourBorder();
-  var borderColour = borderColours.colourBorder || borderColours.colourDark;
-  Blockly.DropDownDiv.setColour(fillColour, borderColour);
+  Blockly.DropDownDiv.setColour(fillColour,
+      this.sourceBlock_.style.colourTertiary);
 
   // Always pass the dropdown div a dispose function so that you can clean
   // up event listeners when the editor closes.
@@ -420,47 +404,53 @@ CustomFields.FieldTurtle.prototype.dropdownCreate_ = function() {
   var leftArrow = createLeftArrow(row);
   widget.patternText = createTextNode(row, this.displayValue_.pattern);
   var rightArrow = createRightArrow(row);
-  this.editorListeners_.push(Blockly.bindEvent_(leftArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      leftArrow, 'mouseup', this,
       createArrowListener('pattern', CustomFields.FieldTurtle.PATTERNS, -1)));
-  this.editorListeners_.push(Blockly.bindEvent_(rightArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      rightArrow, 'mouseup', this,
       createArrowListener('pattern', CustomFields.FieldTurtle.PATTERNS, 1)));
 
   row = createRow(table);
   leftArrow = createLeftArrow(row);
   widget.hatText = createTextNode(row, this.displayValue_.hat);
   rightArrow = createRightArrow(row);
-  this.editorListeners_.push(Blockly.bindEvent_(leftArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      leftArrow, 'mouseup', this,
       createArrowListener('hat', CustomFields.FieldTurtle.HATS, -1)));
-  this.editorListeners_.push(Blockly.bindEvent_(rightArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      rightArrow, 'mouseup', this,
       createArrowListener('hat', CustomFields.FieldTurtle.HATS, 1)));
 
   row = createRow(table);
   leftArrow = createLeftArrow(row);
   widget.turtleNameText = createTextNode(row, this.displayValue_.turtleName);
   rightArrow = createRightArrow(row);
-  this.editorListeners_.push(Blockly.bindEvent_(leftArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      leftArrow, 'mouseup', this,
       createArrowListener('turtleName', CustomFields.FieldTurtle.NAMES, -1)));
-  this.editorListeners_.push(Blockly.bindEvent_(rightArrow, 'mouseup', this,
+  this.editorListeners_.push(Blockly.browserEvents.bind(
+      rightArrow, 'mouseup', this,
       createArrowListener('turtleName', CustomFields.FieldTurtle.NAMES, 1)));
 
   var randomizeButton = document.createElement('button');
   randomizeButton.className = 'randomize';
   randomizeButton.setAttribute('type', 'button');
   randomizeButton.textContent = 'randomize turtle';
-  this.editorListeners_.push(Blockly.bindEvent_(randomizeButton, 'mouseup', this,
-    function() {
-    var value = {};
-    value.pattern = CustomFields.FieldTurtle.PATTERNS[
-        Math.floor(Math.random() * CustomFields.FieldTurtle.PATTERNS.length)];
+  this.editorListeners_.push(
+      Blockly.browserEvents.bind(randomizeButton, 'mouseup', this, function() {
+        var value = {};
+        value.pattern = CustomFields.FieldTurtle.PATTERNS[Math.floor(
+            Math.random() * CustomFields.FieldTurtle.PATTERNS.length)];
 
-    value.hat = CustomFields.FieldTurtle.HATS[
-      Math.floor(Math.random() * CustomFields.FieldTurtle.HATS.length)];
+        value.hat = CustomFields.FieldTurtle.HATS[Math.floor(
+            Math.random() * CustomFields.FieldTurtle.HATS.length)];
 
-    value.turtleName = CustomFields.FieldTurtle.NAMES[
-      Math.floor(Math.random() * CustomFields.FieldTurtle.NAMES.length)];
+        value.turtleName = CustomFields.FieldTurtle.NAMES[Math.floor(
+            Math.random() * CustomFields.FieldTurtle.NAMES.length)];
 
-    this.setValue(value);
-  }));
+        this.setValue(value);
+      }));
   widget.appendChild(randomizeButton);
 
   return widget;
@@ -470,14 +460,14 @@ CustomFields.FieldTurtle.prototype.dropdownCreate_ = function() {
 CustomFields.FieldTurtle.prototype.dropdownDispose_ = function() {
   for (var i = this.editorListeners_.length, listener;
       listener = this.editorListeners_[i]; i--) {
-    Blockly.unbindEvent_(listener);
+    Blockly.browserEvents.unbind(listener);
     this.editorListeners_.pop();
   }
 };
 
 // Updates the field's colour based on the colour of the block. Called by
-// block.updateColour.
-CustomFields.FieldTurtle.prototype.updateColour = function() {
+// block.applyColour.
+CustomFields.FieldTurtle.prototype.applyColour = function() {
   if (!this.sourceBlock_) {
     return;
   }
@@ -486,27 +476,28 @@ CustomFields.FieldTurtle.prototype.updateColour = function() {
   var fillColour = isShadow  ?
       this.sourceBlock_.getColourShadow() : this.sourceBlock_.getColour();
   // This is technically a package function, meaning it could change.
-  var borderColours = this.sourceBlock_.getColourBorder();
   var borderColour = isShadow ? fillColour :
-      borderColours.colourBorder || borderColours.colourDark;
+      this.sourceBlock_.style.colourTertiary;
 
-  var child = this.turtleGroup_.firstChild;
-  while(child) {
-    // If it is a text node, continue.
-    if (child.nodeType == 3) {
-      child = child.nextSibling;
-      continue;
-    }
-    // Or if it is a non-turtle node, continue.
-    var className = child.getAttribute('class');
-    if (!className || className.indexOf('turtleBody') == -1) {
-      child = child.nextSibling;
-      continue;
-    }
+  if (this.turtleGroup_) {
+    var child = this.turtleGroup_.firstChild;
+    while(child) {
+      // If it is a text node, continue.
+      if (child.nodeType == 3) {
+        child = child.nextSibling;
+        continue;
+      }
+      // Or if it is a non-turtle node, continue.
+      var className = child.getAttribute('class');
+      if (!className || className.indexOf('turtleBody') == -1) {
+        child = child.nextSibling;
+        continue;
+      }
 
-    child.style.fill = fillColour;
-    child.style.stroke = borderColour;
-    child = child.nextSibling;
+      child.style.fill = fillColour;
+      child.style.stroke = borderColour;
+      child = child.nextSibling;
+    }
   }
 };
 
@@ -640,7 +631,7 @@ CustomFields.FieldTurtle.prototype.createView_ = function() {
   this.mask_ = Blockly.utils.dom.createSvgElement('image',
     {
       'width': '50',
-      'height': '14'
+      'height': '24'
     }, scaleGroup);
   this.mask_.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href',
     'media/mask.svg');

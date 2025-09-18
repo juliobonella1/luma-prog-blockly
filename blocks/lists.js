@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -26,11 +15,9 @@
  */
 'use strict';
 
-goog.provide('Blockly.Blocks.lists');  // Deprecated
 goog.provide('Blockly.Constants.Lists');
 
 goog.require('Blockly');
-goog.require('Blockly.Blocks');
 goog.require('Blockly.FieldDropdown');
 goog.require('Blockly.FieldLabel');
 goog.require('Blockly.Mutator');
@@ -143,6 +130,7 @@ Blockly.Blocks['lists_create_with'] = {
   },
   /**
    * Create XML to represent list inputs.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -153,11 +141,29 @@ Blockly.Blocks['lists_create_with'] = {
   },
   /**
    * Parse XML to restore the list inputs.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
   domToMutation: function(xmlElement) {
     this.itemCount_ = parseInt(xmlElement.getAttribute('items'), 10);
+    this.updateShape_();
+  },
+  /**
+   * Returns the state of this block as a JSON serializable object.
+   * @return {{itemCount: number}} The state of this block, ie the item count.
+   */
+  saveExtraState: function() {
+    return {
+      'itemCount': this.itemCount_,
+    };
+  },
+  /**
+   * Applies the given state to this block.
+   * @param {*} state The state to apply to this block, ie the item count.
+   */
+  loadExtraState: function(state) {
+    this.itemCount_ = state['itemCount'];
     this.updateShape_();
   },
   /**
@@ -187,7 +193,7 @@ Blockly.Blocks['lists_create_with'] = {
     var itemBlock = containerBlock.getInputTargetBlock('STACK');
     // Count number of inputs.
     var connections = [];
-    while (itemBlock) {
+    while (itemBlock && !itemBlock.isInsertionMarker()) {
       connections.push(itemBlock.valueConnection_);
       itemBlock = itemBlock.nextConnection &&
           itemBlock.nextConnection.targetBlock();
@@ -237,7 +243,8 @@ Blockly.Blocks['lists_create_with'] = {
     // Add new inputs.
     for (var i = 0; i < this.itemCount_; i++) {
       if (!this.getInput('ADD' + i)) {
-        var input = this.appendValueInput('ADD' + i);
+        var input = this.appendValueInput('ADD' + i)
+            .setAlign(Blockly.ALIGN_RIGHT);
         if (i == 0) {
           input.appendField(Blockly.Msg['LISTS_CREATE_WITH_INPUT_WITH']);
         }
@@ -411,7 +418,7 @@ Blockly.Blocks['lists_getIndex'] = {
   /**
    * Create XML to represent whether the block is a statement or a value.
    * Also represent whether there is an 'AT' input.
-   * @return {Element} XML storage element.
+   * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
   mutationToDom: function() {
@@ -435,6 +442,12 @@ Blockly.Blocks['lists_getIndex'] = {
     var isAt = (xmlElement.getAttribute('at') != 'false');
     this.updateAt_(isAt);
   },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Switch between a value block and a statement block.
    * @param {boolean} newStatement True if the block should be a statement.
@@ -575,7 +588,7 @@ Blockly.Blocks['lists_setIndex'] = {
   },
   /**
    * Create XML to represent whether there is an 'AT' input.
-   * @return {Element} XML storage element.
+   * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
   mutationToDom: function() {
@@ -595,6 +608,12 @@ Blockly.Blocks['lists_setIndex'] = {
     var isAt = (xmlElement.getAttribute('at') != 'false');
     this.updateAt_(isAt);
   },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Create or delete an input for the numeric index.
    * @param {boolean} isAt True if the input should exist.
@@ -673,7 +692,7 @@ Blockly.Blocks['lists_getSublist'] = {
   },
   /**
    * Create XML to represent whether there are 'AT' inputs.
-   * @return {Element} XML storage element.
+   * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
   mutationToDom: function() {
@@ -695,6 +714,12 @@ Blockly.Blocks['lists_getSublist'] = {
     this.updateAt_(1, isAt1);
     this.updateAt_(2, isAt2);
   },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Create or delete an input for a numeric index.
    * This block has two such inputs, independent of each other.
@@ -868,5 +893,10 @@ Blockly.Blocks['lists_split'] = {
    */
   domToMutation: function(xmlElement) {
     this.updateType_(xmlElement.getAttribute('mode'));
-  }
+  },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
 };

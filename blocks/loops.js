@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -30,11 +19,11 @@ goog.provide('Blockly.Blocks.loops');  // Deprecated
 goog.provide('Blockly.Constants.Loops');
 
 goog.require('Blockly');
-goog.require('Blockly.Blocks');
 goog.require('Blockly.FieldDropdown');
 goog.require('Blockly.FieldLabel');
 goog.require('Blockly.FieldNumber');
 goog.require('Blockly.FieldVariable');
+goog.require('Blockly.Warning');
 
 
 /**
@@ -206,6 +195,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "previousStatement": null,
     "style": "loop_blocks",
     "helpUrl": "%{BKY_CONTROLS_FLOW_STATEMENTS_HELPURL}",
+    "suppressPrefixSuffix": true,
     "extensions": [
       "controls_flow_tooltip",
       "controls_flow_in_loop_check"
@@ -312,12 +302,6 @@ Blockly.Constants.Loops.CONTROL_FLOW_IN_LOOP_CHECK_MIXIN = {
   ],
 
   /**
-   * Don't automatically add STATEMENT_PREFIX and STATEMENT_SUFFIX to generated
-   * code.  These will be handled manually in this block's generators.
-   */
-  suppressPrefixSuffix: true,
-
-  /**
    * Is the given block enclosed (at any level) by a loop?
    * @param {!Blockly.Block} block Current block.
    * @return {Blockly.Block} The nearest surrounding loop, or null if none.
@@ -337,24 +321,27 @@ Blockly.Constants.Loops.CONTROL_FLOW_IN_LOOP_CHECK_MIXIN = {
   /**
    * Called whenever anything on the workspace changes.
    * Add warning if this flow block is not nested inside a loop.
-   * @param {!Blockly.Events.Abstract} _e Change event.
+   * @param {!Blockly.Events.Abstract} e Change event.
    * @this {Blockly.Block}
    */
-  onchange: function(_e) {
-    if (!this.workspace.isDragging || this.workspace.isDragging()) {
-      return;  // Don't change state at the start of a drag.
+  onchange: function(e) {
+    // Don't change state if:
+    //   * It's at the start of a drag.
+    //   * It's not a move event.
+    if (!this.workspace.isDragging || this.workspace.isDragging() ||
+        e.type != Blockly.Events.BLOCK_MOVE) {
+      return;
     }
-    if (Blockly.Constants.Loops.CONTROL_FLOW_IN_LOOP_CHECK_MIXIN
-        .getSurroundLoop(this)) {
-      this.setWarningText(null);
-      if (!this.isInFlyout) {
-        this.setEnabled(true);
-      }
-    } else {
-      this.setWarningText(Blockly.Msg['CONTROLS_FLOW_STATEMENTS_WARNING']);
-      if (!this.isInFlyout && !this.getInheritedDisabled()) {
-        this.setEnabled(false);
-      }
+    var enabled = Blockly.Constants.Loops.CONTROL_FLOW_IN_LOOP_CHECK_MIXIN
+        .getSurroundLoop(this);
+    this.setWarningText(enabled ? null :
+        Blockly.Msg['CONTROLS_FLOW_STATEMENTS_WARNING']);
+    if (!this.isInFlyout) {
+      var group = Blockly.Events.getGroup();
+      // Makes it so the move and the disable event get undone together.
+      Blockly.Events.setGroup(e.group);
+      this.setEnabled(enabled);
+      Blockly.Events.setGroup(group);
     }
   }
 };

@@ -1,19 +1,22 @@
 {
 	"@metadata": {
 		"authors": [
-			"Ebraminio",
-			"Reza1615",
 			"Alirezaaa",
+			"Arash.pt",
+			"AzorAhai",
+			"Dalba",
+			"Ebraminio",
+			"Hamisun",
+			"Hossein.safavi",
 			"Mehran",
 			"MohandesWiki",
-			"Dalba",
-			"Hamisun",
 			"Nhzandi",
-			"Arash.pt",
-			"Hossein.safavi"
+			"Reza1615",
+			"Sunfyre"
 		]
 	},
 	"VARIABLES_DEFAULT_NAME": "مورد",
+	"UNNAMED_KEY": "بدون نام",
 	"TODAY": "امروز",
 	"DUPLICATE_BLOCK": "تکراری",
 	"ADD_COMMENT": "افزودن نظر",
@@ -343,5 +346,7 @@
 	"PROCEDURES_CREATE_DO": "ساختن «%1»",
 	"PROCEDURES_IFRETURN_TOOLTIP": "اگر یک مقدار صحیح است، مقدار دوم را برگردان.",
 	"PROCEDURES_IFRETURN_WARNING": "اخطار: این بلوک احتمالاً فقط داخل یک تابع استفاده می‌شود.",
-	"WORKSPACE_COMMENT_DEFAULT_TEXT": "یک چیزی بگو..."
+	"WORKSPACE_COMMENT_DEFAULT_TEXT": "یک چیزی بگو...",
+	"DIALOG_OK": "تأیید",
+	"DIALOG_CANCEL": "لغو"
 }

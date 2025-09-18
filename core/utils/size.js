@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -24,10 +13,10 @@
 'use strict';
 
 /**
- * @name Blockly.utils.Size
+ * @name Size
  * @namespace
  */
-goog.provide('Blockly.utils.Size');
+goog.module('Blockly.utils.Size');
 
 
 /**
@@ -37,7 +26,7 @@ goog.provide('Blockly.utils.Size');
  * @struct
  * @constructor
  */
-Blockly.utils.Size = function(width, height) {
+const Size = function(width, height) {
   /**
    * Width
    * @type {number}
@@ -53,12 +42,12 @@ Blockly.utils.Size = function(width, height) {
 
 /**
  * Compares sizes for equality.
- * @param {Blockly.utils.Size} a A Size.
- * @param {Blockly.utils.Size} b A Size.
+ * @param {?Size} a A Size.
+ * @param {?Size} b A Size.
  * @return {boolean} True iff the sizes have equal widths and equal
  *     heights, or if both are null.
  */
-Blockly.utils.Size.equals = function(a, b) {
+Size.equals = function(a, b) {
   if (a == b) {
     return true;
   }
@@ -67,3 +56,5 @@ Blockly.utils.Size.equals = function(a, b) {
   }
   return a.width == b.width && a.height == b.height;
 };
+
+exports = Size;

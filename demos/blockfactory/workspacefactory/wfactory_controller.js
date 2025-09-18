@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -340,10 +329,6 @@ WorkspaceFactoryController.prototype.exportXmlFile = function(exportMode) {
     throw Error(msg);
   }
 
-  // Unpack self-closing tags.  These tags fail when embedded in HTML.
-  // <block name="foo"/> -> <block name="foo"></block>
-  configXml = configXml.replace(/<(\w+)([^<]*)\/>/g, '<$1$2></$1>');
-
   // Download file.
   var data = new Blob([configXml], {type: 'text/xml'});
   this.view.createAndDownloadFile(fileName, data);
@@ -413,7 +398,7 @@ WorkspaceFactoryController.prototype.updatePreview = function() {
   // Only update the toolbox if not in read only mode.
   if (!this.model.options['readOnly']) {
     // Get toolbox XML.
-    var tree = Blockly.Options.parseToolboxTree(
+    var tree = Blockly.utils.toolbox.parseToolboxTree(
         this.generator.generateToolboxXml());
 
     // No categories, creates a simple flyout.
@@ -505,8 +490,8 @@ WorkspaceFactoryController.prototype.changeSelectedCategory = function(name,
     return;
   }
   // Change colour of selected category.
-  selected.changeColor(colour);
-  this.view.setBorderColor(this.model.getSelectedId(), colour);
+  selected.changeColour(colour);
+  this.view.setBorderColour(this.model.getSelectedId(), colour);
   // Change category name.
   selected.changeName(name);
   this.view.updateCategoryName(name, this.model.getSelectedId());
@@ -565,7 +550,8 @@ WorkspaceFactoryController.prototype.loadCategory = function() {
   // Prompt user for the name of the standard category to load.
   do {
     var name = prompt('Enter the name of the category you would like to import '
-        + '(Logic, Loops, Math, Text, Lists, Colour, Variables, or Functions)');
+        + '(Logic, Loops, Math, Text, Lists, Colour, Variables, TypedVariables '
+        + 'or Functions)');
     if (!name) {
       return;  // Exit if cancelled.
     }
@@ -602,9 +588,10 @@ WorkspaceFactoryController.prototype.loadCategoryByName = function(name) {
         + '. Rename your category and try again.');
     return;
   }
-  if (!standardCategory.color && standardCategory.hue !== undefined) {
+  if (!standardCategory.colour && standardCategory.hue !== undefined) {
     // Calculate the hex colour based on the hue.
-    standardCategory.color = Blockly.hueToHex(standardCategory.hue);
+    standardCategory.colour = Blockly.utils.colour.hueToHex(
+      standardCategory.hue);
   }
   // Transfers current flyout blocks to a category if it's the first category
   // created.
@@ -621,8 +608,8 @@ WorkspaceFactoryController.prototype.loadCategoryByName = function(name) {
   var tab = this.view.addCategoryRow(copy.name, copy.id);
   this.addClickToSwitch(tab, copy.id);
   // Color the category tab in the view.
-  if (copy.color) {
-    this.view.setBorderColor(copy.id, copy.color);
+  if (copy.colour) {
+    this.view.setBorderColour(copy.id, copy.colour);
   }
   // Switch to loaded category.
   this.switchElement(copy.id);
@@ -819,10 +806,10 @@ WorkspaceFactoryController.prototype.importToolboxFromTree_ = function(tree) {
         // Convert actual shadow blocks to user-generated shadow blocks.
         this.convertShadowBlocks();
 
-        // Set category color.
+        // Set category colour.
         if (item.getAttribute('colour')) {
-          category.changeColor(item.getAttribute('colour'));
-          this.view.setBorderColor(category.id, category.color);
+          category.changeColour(item.getAttribute('colour'));
+          this.view.setBorderColour(category.id, category.colour);
         }
         // Set any custom tags.
         if (item.getAttribute('custom')) {
@@ -901,7 +888,6 @@ WorkspaceFactoryController.prototype.clearAll = function() {
   if (!confirm(msg)) {
     return;
   }
-  var hasCategories = this.model.hasElements();
   this.model.clearToolboxList();
   this.view.clearToolboxTabs();
   this.model.savePreloadXml(Blockly.utils.xml.createElement('xml'));
@@ -917,7 +903,7 @@ WorkspaceFactoryController.prototype.clearAll = function() {
   this.updatePreview();
 };
 
-/*
+/**
  * Makes the currently selected block a user-generated shadow block. These
  * blocks are not made into real shadow blocks, but recorded in the model
  * and visually marked as shadow blocks, allowing the user to move and edit
@@ -926,14 +912,14 @@ WorkspaceFactoryController.prototype.clearAll = function() {
  */
 WorkspaceFactoryController.prototype.addShadow = function() {
   // No block selected to make a shadow block.
-  if (!Blockly.selected) {
+  if (!Blockly.common.getSelected()) {
     return;
   }
   // Clear any previous warnings on the block (would only have warnings on
   // a non-shadow block if it was nested inside another shadow block).
-  Blockly.selected.setWarningText(null);
+  Blockly.common.getSelected().setWarningText(null);
   // Set selected block and all children as shadow blocks.
-  this.addShadowForBlockAndChildren_(Blockly.selected);
+  this.addShadowForBlockAndChildren_(Blockly.common.getSelected());
 
   // Save and update the preview.
   this.saveStateFromWorkspace();
@@ -971,14 +957,14 @@ WorkspaceFactoryController.prototype.addShadowForBlockAndChildren_ =
  */
 WorkspaceFactoryController.prototype.removeShadow = function() {
   // No block selected to modify.
-  if (!Blockly.selected) {
+  if (!Blockly.common.getSelected()) {
     return;
   }
-  this.model.removeShadowBlock(Blockly.selected.id);
-  this.view.unmarkShadowBlock(Blockly.selected);
+  this.model.removeShadowBlock(Blockly.common.getSelected().id);
+  this.view.unmarkShadowBlock(Blockly.common.getSelected());
 
   // If turning invalid shadow block back to normal block, remove warning.
-  Blockly.selected.setWarningText(null);
+  Blockly.common.getSelected().setWarningText(null);
 
   this.saveStateFromWorkspace();
   this.updatePreview();
@@ -1099,7 +1085,7 @@ WorkspaceFactoryController.prototype.setStandardOptionsAndUpdate = function() {
 WorkspaceFactoryController.prototype.generateNewOptions = function() {
   this.model.setOptions(this.readOptions_());
 
-  this.reinjectPreview(Blockly.Options.parseToolboxTree(
+  this.reinjectPreview(Blockly.utils.toolbox.parseToolboxTree(
       this.generator.generateToolboxXml()));
 };
 
@@ -1223,9 +1209,9 @@ WorkspaceFactoryController.prototype.importBlocks = function(file, format) {
       // If an imported block type is already defined, check if the user wants
       // to override the current block definition.
       if (controller.model.hasDefinedBlockTypes(blockTypes)) {
-        var msg = 'An imported block uses the same name as a block '
-          + 'already in your toolbox. Are you sure you want to override the '
-          + 'currently defined block?';
+        var msg = 'An imported block uses the same name as a block ' +
+          'already in your toolbox. Are you sure you want to override the ' +
+          'currently defined block?';
         var continueAnyway = confirm(msg);
         BlocklyDevTools.Analytics.onWarning(msg);
         if (!continueAnyway) {
@@ -1236,8 +1222,8 @@ WorkspaceFactoryController.prototype.importBlocks = function(file, format) {
       var blocks = controller.generator.getDefinedBlocks(blockTypes);
       // Generate category XML and append to toolbox.
       var categoryXml = FactoryUtils.generateCategoryXml(blocks, categoryName);
-      // Get random color for category between 0 and 360. Gives each imported
-      // category a different color.
+      // Get random colour for category between 0 and 360. Gives each imported
+      // category a different colour.
       var randomColor = Math.floor(Math.random() * 360);
       categoryXml.setAttribute('colour', randomColor);
       controller.toolbox.appendChild(categoryXml);
@@ -1262,10 +1248,10 @@ WorkspaceFactoryController.prototype.importBlocks = function(file, format) {
   reader.readAsText(file);
 };
 
-/*
+/**
  * Updates the block library category in the toolbox workspace toolbox.
  * @param {!Element} categoryXml XML for the block library category.
- * @param {!Array.<string>} libBlockTypes Array of block types from the block
+ * @param {!Array<string>} libBlockTypes Array of block types from the block
  *    library.
  */
 WorkspaceFactoryController.prototype.setBlockLibCategory =
@@ -1273,7 +1259,7 @@ WorkspaceFactoryController.prototype.setBlockLibCategory =
   var blockLibCategory = document.getElementById('blockLibCategory');
 
   // Set category ID so that it can be easily replaced, and set a standard,
-  // arbitrary block library color.
+  // arbitrary block library colour.
   categoryXml.id = 'blockLibCategory';
   categoryXml.setAttribute('colour', 260);
 
@@ -1292,7 +1278,7 @@ WorkspaceFactoryController.prototype.setBlockLibCategory =
 
 /**
  * Return the block types used in the custom toolbox and pre-loaded workspace.
- * @return {!Array.<string>} Block types used in the custom toolbox and
+ * @return {!Array<string>} Block types used in the custom toolbox and
  *    pre-loaded workspace.
  */
 WorkspaceFactoryController.prototype.getAllUsedBlockTypes = function() {
@@ -1323,7 +1309,7 @@ WorkspaceFactoryController.prototype.warnForUndefinedBlocks_ = function() {
   }
 };
 
-/*
+/**
  * Determines if a standard variable category is in the custom toolbox.
  * @return {boolean} True if a variables category is in use, false otherwise.
  */

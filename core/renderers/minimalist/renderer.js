@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -20,61 +9,66 @@
  */
 'use strict';
 
-goog.provide('Blockly.minimalist.Renderer');
+goog.module('Blockly.minimalist.Renderer');
 
-goog.require('Blockly.blockRendering');
-goog.require('Blockly.blockRendering.Renderer');
-goog.require('Blockly.utils.object');
-goog.require('Blockly.minimalist.ConstantProvider');
-goog.require('Blockly.minimalist.Drawer');
-goog.require('Blockly.minimalist.RenderInfo');
+/* eslint-disable-next-line no-unused-vars */
+const BaseRenderInfo = goog.requireType('Blockly.blockRendering.RenderInfo');
+const BaseRenderer = goog.require('Blockly.blockRendering.Renderer');
+const ConstantProvider = goog.require('Blockly.minimalist.ConstantProvider');
+const Drawer = goog.require('Blockly.minimalist.Drawer');
+const RenderInfo = goog.require('Blockly.minimalist.RenderInfo');
+const blockRendering = goog.require('Blockly.blockRendering');
+const object = goog.require('Blockly.utils.object');
+/* eslint-disable-next-line no-unused-vars */
+const {BlockSvg} = goog.requireType('Blockly.BlockSvg');
 
 
 /**
  * The minimalist renderer.
+ * @param {string} name The renderer name.
  * @package
  * @constructor
- * @extends {Blockly.blockRendering.Renderer}
+ * @extends {BaseRenderer}
  */
-Blockly.minimalist.Renderer = function() {
-  Blockly.minimalist.Renderer.superClass_.constructor.call(this);
+const Renderer = function(name) {
+  Renderer.superClass_.constructor.call(this, name);
 };
-Blockly.utils.object.inherits(Blockly.minimalist.Renderer,
-    Blockly.blockRendering.Renderer);
+object.inherits(Renderer, BaseRenderer);
 
 /**
  * Create a new instance of the renderer's constant provider.
- * @return {!Blockly.minimalist.ConstantProvider} The constant provider.
+ * @return {!ConstantProvider} The constant provider.
  * @protected
  * @override
  */
-Blockly.minimalist.Renderer.prototype.makeConstants_ = function() {
-  return new Blockly.minimalist.ConstantProvider();
+Renderer.prototype.makeConstants_ = function() {
+  return new ConstantProvider();
 };
 
 /**
  * Create a new instance of the renderer's render info object.
- * @param {!Blockly.BlockSvg} block The block to measure.
- * @return {!Blockly.minimalist.RenderInfo} The render info object.
+ * @param {!BlockSvg} block The block to measure.
+ * @return {!RenderInfo} The render info object.
  * @protected
  * @override
  */
-Blockly.minimalist.Renderer.prototype.makeRenderInfo_ = function(block) {
-  return new Blockly.minimalist.RenderInfo(this, block);
+Renderer.prototype.makeRenderInfo_ = function(block) {
+  return new RenderInfo(this, block);
 };
 
 /**
  * Create a new instance of the renderer's drawer.
- * @param {!Blockly.BlockSvg} block The block to render.
- * @param {!Blockly.blockRendering.RenderInfo} info An object containing all
+ * @param {!BlockSvg} block The block to render.
+ * @param {!BaseRenderInfo} info An object containing all
  *   information needed to render this block.
- * @return {!Blockly.minimalist.Drawer} The drawer.
+ * @return {!Drawer} The drawer.
  * @protected
  * @override
  */
-Blockly.minimalist.Renderer.prototype.makeDrawer_ = function(block, info) {
-  return new Blockly.minimalist.Drawer(block,
-      /** @type {!Blockly.minimalist.RenderInfo} */ (info));
+Renderer.prototype.makeDrawer_ = function(block, info) {
+  return new Drawer(block, /** @type {!RenderInfo} */ (info));
 };
 
-Blockly.blockRendering.register('minimalist', Blockly.minimalist.Renderer);
+blockRendering.register('minimalist', Renderer);
+
+exports = Renderer;

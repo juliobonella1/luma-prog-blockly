@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -25,7 +14,6 @@ goog.provide('Blockly.Blocks.texts');  // Deprecated
 goog.provide('Blockly.Constants.Text');
 
 goog.require('Blockly');
-goog.require('Blockly.Blocks');
 goog.require('Blockly.FieldDropdown');
 goog.require('Blockly.FieldImage');
 goog.require('Blockly.FieldMultilineInput');
@@ -272,6 +260,7 @@ Blockly.Blocks['text_getSubstring'] = {
   },
   /**
    * Create XML to represent whether there are 'AT' inputs.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -285,6 +274,7 @@ Blockly.Blocks['text_getSubstring'] = {
   },
   /**
    * Parse XML to restore the 'AT' inputs.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
@@ -294,9 +284,15 @@ Blockly.Blocks['text_getSubstring'] = {
     this.updateAt_(1, isAt1);
     this.updateAt_(2, isAt2);
   },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Create or delete an input for a numeric index.
-   * This block has two such inputs, independant of each other.
+   * This block has two such inputs, independent of each other.
    * @param {number} n Specify first or second input (1 or 2).
    * @param {boolean} isAt True if the input should exist.
    * @private
@@ -452,6 +448,7 @@ Blockly.Blocks['text_prompt_ext'] = {
   },
   /**
    * Create XML to represent the output type.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -462,12 +459,18 @@ Blockly.Blocks['text_prompt_ext'] = {
   },
   /**
    * Parse XML to restore the output type.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
   domToMutation: function(xmlElement) {
     this.updateType_(xmlElement.getAttribute('type'));
-  }
+  },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
 };
 
 Blockly.Blocks['text_prompt'] = {
@@ -638,8 +641,8 @@ Blockly.Constants.Text.QUOTE_IMAGE_MIXIN = {
    * @this {Blockly.Block}
    */
   quoteField_: function(fieldName) {
-    for (var i = 0, input; input = this.inputList[i]; i++) {
-      for (var j = 0, field; field = input.fieldRow[j]; j++) {
+    for (var i = 0, input; (input = this.inputList[i]); i++) {
+      for (var j = 0, field; (field = input.fieldRow[j]); j++) {
         if (fieldName == field.name) {
           input.insertFieldAt(j, this.newQuote_(true));
           input.insertFieldAt(j + 2, this.newQuote_(false));
@@ -689,6 +692,7 @@ Blockly.Constants.Text.TEXT_QUOTES_EXTENSION = function() {
 Blockly.Constants.Text.TEXT_JOIN_MUTATOR_MIXIN = {
   /**
    * Create XML to represent number of text inputs.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -699,11 +703,29 @@ Blockly.Constants.Text.TEXT_JOIN_MUTATOR_MIXIN = {
   },
   /**
    * Parse XML to restore the text inputs.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
   domToMutation: function(xmlElement) {
     this.itemCount_ = parseInt(xmlElement.getAttribute('items'), 10);
+    this.updateShape_();
+  },
+  /**
+   * Returns the state of this block as a JSON serializable object.
+   * @return {{itemCount: number}} The state of this block, ie the item count.
+   */
+  saveExtraState: function() {
+    return {
+      'itemCount': this.itemCount_,
+    };
+  },
+  /**
+   * Applies the given state to this block.
+   * @param {*} state The state to apply to this block, ie the item count.
+   */
+  loadExtraState: function(state) {
+    this.itemCount_ = state['itemCount'];
     this.updateShape_();
   },
   /**
@@ -733,7 +755,7 @@ Blockly.Constants.Text.TEXT_JOIN_MUTATOR_MIXIN = {
     var itemBlock = containerBlock.getInputTargetBlock('STACK');
     // Count number of inputs.
     var connections = [];
-    while (itemBlock) {
+    while (itemBlock && !itemBlock.isInsertionMarker()) {
       connections.push(itemBlock.valueConnection_);
       itemBlock = itemBlock.nextConnection &&
           itemBlock.nextConnection.targetBlock();
@@ -784,7 +806,8 @@ Blockly.Constants.Text.TEXT_JOIN_MUTATOR_MIXIN = {
     // Add new inputs.
     for (var i = 0; i < this.itemCount_; i++) {
       if (!this.getInput('ADD' + i)) {
-        var input = this.appendValueInput('ADD' + i);
+        var input = this.appendValueInput('ADD' + i)
+            .setAlign(Blockly.ALIGN_RIGHT);
         if (i == 0) {
           input.appendField(Blockly.Msg['TEXT_JOIN_TITLE_CREATEWITH']);
         }
@@ -839,6 +862,7 @@ Blockly.Constants.Text.TEXT_INDEXOF_TOOLTIP_EXTENSION = function() {
 Blockly.Constants.Text.TEXT_CHARAT_MUTATOR_MIXIN = {
   /**
    * Create XML to represent whether there is an 'AT' input.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -849,6 +873,7 @@ Blockly.Constants.Text.TEXT_CHARAT_MUTATOR_MIXIN = {
   },
   /**
    * Parse XML to restore the 'AT' input.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
@@ -858,6 +883,12 @@ Blockly.Constants.Text.TEXT_CHARAT_MUTATOR_MIXIN = {
     var isAt = (xmlElement.getAttribute('at') != 'false');
     this.updateAt_(isAt);
   },
+  
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this object is already encoded in the
+  // dropdown values.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Create or delete an input for the numeric index.
    * @param {boolean} isAt True if the input should exist.

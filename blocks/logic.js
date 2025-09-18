@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -30,7 +19,6 @@ goog.provide('Blockly.Blocks.logic');  // Deprecated
 goog.provide('Blockly.Constants.Logic');
 
 goog.require('Blockly');
-goog.require('Blockly.Blocks');
 goog.require('Blockly.FieldDropdown');
 goog.require('Blockly.FieldLabel');
 goog.require('Blockly.Mutator');
@@ -84,6 +72,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "nextStatement": null,
     "style": "logic_blocks",
     "helpUrl": "%{BKY_CONTROLS_IF_HELPURL}",
+    "suppressPrefixSuffix": true,
     "mutator": "controls_if_mutator",
     "extensions": ["controls_if_tooltip"]
   },
@@ -117,6 +106,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "style": "logic_blocks",
     "tooltip": "%{BKYCONTROLS_IF_TOOLTIP_2}",
     "helpUrl": "%{BKY_CONTROLS_IF_HELPURL}",
+    "suppressPrefixSuffix": true,
     "extensions": ["controls_if_tooltip"]
   },
   // Block for comparison operator.
@@ -307,13 +297,8 @@ Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN = {
   elseCount_: 0,
 
   /**
-   * Don't automatically add STATEMENT_PREFIX and STATEMENT_SUFFIX to generated
-   * code.  These will be handled manually in this block's generators.
-   */
-  suppressPrefixSuffix: true,
-
-  /**
    * Create XML to represent the number of else-if and else inputs.
+   * Backwards compatible serialization implementation.
    * @return {Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -332,6 +317,7 @@ Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN = {
   },
   /**
    * Parse XML to restore the else-if and else inputs.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
@@ -339,6 +325,34 @@ Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN = {
     this.elseifCount_ = parseInt(xmlElement.getAttribute('elseif'), 10) || 0;
     this.elseCount_ = parseInt(xmlElement.getAttribute('else'), 10) || 0;
     this.rebuildShape_();
+  },
+  /**
+   * Returns the state of this block as a JSON serializable object.
+   * @return {?{elseIfCount: (number|undefined), haseElse: (boolean|undefined)}}
+   *     The state of this block, ie the else if count and else state.
+   */
+  saveExtraState: function() {
+    if (!this.elseifCount_ && !this.elseCount_) {
+      return null;
+    }
+    var state = Object.create(null);
+    if (this.elseifCount_) {
+      state['elseIfCount'] = this.elseifCount_;
+    }
+    if (this.elseCount_) {
+      state['hasElse'] = true;
+    }
+    return state;
+  },
+  /**
+   * Applies the given state to this block.
+   * @param {*} state The state to apply to this block, ie the else if count and
+   *     else state.
+   */
+  loadExtraState: function(state) {
+    this.elseifCount_ = state['elseIfCount'] || 0;
+    this.elseCount_ = state['hasElse'] ? 1 : 0;
+    this.updateShape_();
   },
   /**
    * Populate the mutator's dialog with this block's components.
@@ -376,7 +390,7 @@ Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN = {
     var valueConnections = [null];
     var statementConnections = [null];
     var elseStatementConnection = null;
-    while (clauseBlock) {
+    while (clauseBlock && !clauseBlock.isInsertionMarker()) {
       switch (clauseBlock.type) {
         case 'controls_if_elseif':
           this.elseifCount_++;
@@ -484,9 +498,9 @@ Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN = {
   },
   /**
    * Reconnects child blocks.
-   * @param {!Array.<?Blockly.RenderedConnection>} valueConnections List of
+   * @param {!Array<?Blockly.RenderedConnection>} valueConnections List of
    * value connections for 'if' input.
-   * @param {!Array.<?Blockly.RenderedConnection>} statementConnections List of
+   * @param {!Array<?Blockly.RenderedConnection>} statementConnections List of
    * statement connections for 'do' input.
    * @param {?Blockly.RenderedConnection} elseStatementConnection Statement
    * connection for else input.
@@ -554,14 +568,15 @@ Blockly.Constants.Logic.LOGIC_COMPARE_ONCHANGE_MIXIN = {
     var blockB = this.getInputTargetBlock('B');
     // Disconnect blocks that existed prior to this change if they don't match.
     if (blockA && blockB &&
-        !blockA.outputConnection.checkType_(blockB.outputConnection)) {
+      !this.workspace.connectionChecker.doTypeChecks(
+          blockA.outputConnection, blockB.outputConnection)) {
       // Mismatch between two inputs.  Revert the block connections,
       // bumping away the newly connected block(s).
       Blockly.Events.setGroup(e.group);
       var prevA = this.prevBlocks_[0];
       if (prevA !== blockA) {
         blockA.unplug();
-        if (prevA && !prevA.isShadow()) {
+        if (prevA && !prevA.isDisposed() && !prevA.isShadow()) {
           // The shadow block is automatically replaced during unplug().
           this.getInput('A').connection.connect(prevA.outputConnection);
         }
@@ -569,7 +584,7 @@ Blockly.Constants.Logic.LOGIC_COMPARE_ONCHANGE_MIXIN = {
       var prevB = this.prevBlocks_[1];
       if (prevB !== blockB) {
         blockB.unplug();
-        if (prevB && !prevB.isShadow()) {
+        if (prevB && !prevB.isDisposed() && !prevB.isShadow()) {
           // The shadow block is automatically replaced during unplug().
           this.getInput('B').connection.connect(prevB.outputConnection);
         }
@@ -621,7 +636,9 @@ Blockly.Constants.Logic.LOGIC_TERNARY_ONCHANGE_MIXIN = {
     if ((blockA || blockB) && parentConnection) {
       for (var i = 0; i < 2; i++) {
         var block = (i == 1) ? blockA : blockB;
-        if (block && !block.outputConnection.checkType_(parentConnection)) {
+        if (block &&
+            !block.workspace.connectionChecker.doTypeChecks(
+                block.outputConnection, parentConnection)) {
           // Ensure that any disconnections are grouped with the causing event.
           Blockly.Events.setGroup(e.group);
           if (parentConnection === this.prevParentConnection_) {

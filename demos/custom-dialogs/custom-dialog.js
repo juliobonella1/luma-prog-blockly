@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -24,16 +13,16 @@
  */
 CustomDialog = {};
 
-/** Override Blockly.alert() with custom implementation. */
-Blockly.alert = function(message, callback) {
+/** Override Blockly.dialog.alert() with custom implementation. */
+Blockly.dialog.setAlert(function(message, callback) {
   console.log('Alert: ' + message);
   CustomDialog.show('Alert', message, {
     onCancel: callback
   });
-};
+});
 
-/** Override Blockly.confirm() with custom implementation. */
-Blockly.confirm = function(message, callback) {
+/** Override Blockly.dialog.confirm() with custom implementation. */
+Blockly.dialog.setConfirm(function(message, callback) {
   console.log('Confirm: ' + message);
   CustomDialog.show('Confirm', message, {
     showOkay: true,
@@ -45,10 +34,10 @@ Blockly.confirm = function(message, callback) {
       callback(false);
     }
   });
-};
+});
 
-/** Override Blockly.prompt() with custom implementation. */
-Blockly.prompt = function(message, defaultValue, callback) {
+/** Override Blockly.dialog.prompt() with custom implementation. */
+Blockly.dialog.setPrompt(function(message, defaultValue, callback) {
   console.log('Prompt: ' + message);
   CustomDialog.show('Prompt', message, {
     showInput: true,
@@ -62,7 +51,7 @@ Blockly.prompt = function(message, defaultValue, callback) {
     }
   });
   CustomDialog.inputField.value = defaultValue;
-};
+});
 
 /** Hides any currently visible dialog. */
 CustomDialog.hide = function() {

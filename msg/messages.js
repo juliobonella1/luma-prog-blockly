@@ -1,31 +1,22 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
  * @fileoverview English strings.
  * @author fraser@google.com (Neil Fraser)
  *
- * After modifying this file, either run "build.py" from the parent directory,
- * or run (from this directory):
- * ../i18n/js_to_json.py
- * to regenerate json/{en,qqq,synonyms}.json.
+ * After modifying this file, run:
+ *
+ *     npm run generate:langfiles
+ *
+ * to regenerate json/{en,qqq,constants,synonyms}.json.
  *
  * To convert all of the json files to .js files, run:
- * ../i18n/create_messages.py json/*.json
+ *
+ *     npm run build:langfiles
  */
 'use strict';
 
@@ -1630,7 +1621,20 @@ Blockly.Msg.PROCEDURES_IFRETURN_WARNING = 'Warning: This block may be used only 
 Blockly.Msg.WORKSPACE_COMMENT_DEFAULT_TEXT = 'Say something...';
 
 /** @type {string} */
+/// workspace - This text is read out when a user navigates to the workspace while
+/// using a screen reader.
+Blockly.Msg.WORKSPACE_ARIA_LABEL = 'Blockly Workspace';
+
+/** @type {string} */
 /// warning - This appears if the user collapses a block, and blocks inside
 /// that block have warnings attached to them. It should inform the user that the
 /// block they collapsed contains blocks that have warnings.
 Blockly.Msg.COLLAPSED_WARNINGS_WARNING = 'Collapsed blocks contain warnings.';
+
+/** @type {string} */
+/// button label - Pressing this button closes help information.\n{{Identical|OK}}
+Blockly.Msg.DIALOG_OK = 'OK';
+
+/** @type {string} */
+/// button label - Pressing this button cancels a proposed action.\n{{Identical|Cancel}}
+Blockly.Msg.DIALOG_CANCEL = 'Cancel';

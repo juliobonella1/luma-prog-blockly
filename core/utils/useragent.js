@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -27,54 +16,167 @@
  * @name Blockly.utils.userAgent
  * @namespace
  */
-goog.provide('Blockly.utils.userAgent');
+goog.module('Blockly.utils.userAgent');
 
-goog.require('Blockly.utils.global');
+const {globalThis} = goog.require('Blockly.utils.global');
+
+
+/**
+ * The raw useragent string.
+ * @type {string}
+ */
+let rawUserAgent;
+
+/** @type {boolean} */
+let isIe;
+
+/** @type {boolean} */
+let isEdge;
+
+/** @type {boolean} */
+let isJavaFx;
+
+/** @type {boolean} */
+let isChrome;
+
+/** @type {boolean} */
+let isWebKit;
+
+/** @type {boolean} */
+let isGecko;
+
+/** @type {boolean} */
+let isAndroid;
+
+/** @type {boolean} */
+let isIPad;
+
+/** @type {boolean} */
+let isIPod;
+
+/** @type {boolean} */
+let isIPhone;
+
+/** @type {boolean} */
+let isMac;
+
+/** @type {boolean} */
+let isTablet;
+
+/** @type {boolean} */
+let isMobile;
 
 (function(raw) {
-  Blockly.utils.userAgent.raw = raw;
-  var rawUpper = Blockly.utils.userAgent.raw.toUpperCase();
-  /**
-   * Case-insensitive test of whether name is in the useragent string.
-   * @param {string} name Name to test.
-   * @return {boolean} True if name is present.
-   */
-  function has(name) {
-    return rawUpper.indexOf(name.toUpperCase()) != -1;
-  }
+rawUserAgent = raw;
+const rawUpper = rawUserAgent.toUpperCase();
+/**
+ * Case-insensitive test of whether name is in the useragent string.
+ * @param {string} name Name to test.
+ * @return {boolean} True if name is present.
+ */
+function has(name) {
+  return rawUpper.indexOf(name.toUpperCase()) != -1;
+}
 
-  // Browsers.  Logic from:
-  // https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/browser.js
-  Blockly.utils.userAgent.IE = has('Trident') || has('MSIE');
-  Blockly.utils.userAgent.EDGE = has('Edge');
-  // Useragent for JavaFX:
-  // Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.44
-  //     (KHTML, like Gecko) JavaFX/8.0 Safari/537.44
-  Blockly.utils.userAgent.JAVA_FX = has('JavaFX');
+// Browsers.  Logic from:
+// https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/browser.js
+isIe = has('Trident') || has('MSIE');
+isEdge = has('Edge');
+// Useragent for JavaFX:
+// Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.44
+//     (KHTML, like Gecko) JavaFX/8.0 Safari/537.44
+isJavaFx = has('JavaFX');
+isChrome = (has('Chrome') || has('CriOS')) && !isEdge;
 
-  // Engines.  Logic from:
-  // https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/engine.js
-  Blockly.utils.userAgent.WEBKIT = has('WebKit') &&
-      !Blockly.utils.userAgent.EDGE;
-  Blockly.utils.userAgent.GECKO = has('Gecko') &&
-      !Blockly.utils.userAgent.WEBKIT &&
-      !Blockly.utils.userAgent.IE &&
-      !Blockly.utils.userAgent.EDGE;
+// Engines.  Logic from:
+// https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/engine.js
+isWebKit = has('WebKit') && !isEdge;
+isGecko = has('Gecko') && !isWebKit && !isIe && !isEdge;
 
-  // Platforms.  Logic from:
-  // https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/platform.js
-  Blockly.utils.userAgent.ANDROID = has('Android');
-  Blockly.utils.userAgent.IPAD = has('iPad');
-  Blockly.utils.userAgent.IPOD = has('iPod');
-  Blockly.utils.userAgent.IPHONE = has('iPhone') &&
-      !Blockly.utils.userAgent.IPAD && !Blockly.utils.userAgent.IPOD;
-  Blockly.utils.userAgent.MAC = has('Macintosh');
+// Platforms.  Logic from:
+// https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/platform.js
+// and
+// https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/extra.js
+isAndroid = has('Android');
+const maxTouchPoints =
+    globalThis['navigator'] && globalThis['navigator']['maxTouchPoints'];
+isIPad = has('iPad') || has('Macintosh') && maxTouchPoints > 0;
+isIPod = has('iPod');
+isIPhone = has('iPhone') && !isIPad && !isIPod;
+isMac = has('Macintosh');
 
-  // Devices.  Logic from:
-  // https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/device.js
-  Blockly.utils.userAgent.TABLET = Blockly.utils.userAgent.IPAD ||
-      (Blockly.utils.userAgent.ANDROID && !has('Mobile')) || has('Silk');
-  Blockly.utils.userAgent.MOBILE = !Blockly.utils.userAgent.TABLET &&
-      (Blockly.utils.userAgent.IPOD || Blockly.utils.userAgent.IPHONE ||
-       Blockly.utils.userAgent.ANDROID || has('IEMobile'));
-})((Blockly.utils.global.navigator && Blockly.utils.global.navigator.userAgent) || '');
+// Devices.  Logic from:
+// https://github.com/google/closure-library/blob/master/closure/goog/labs/useragent/device.js
+isTablet = isIPad || (isAndroid && !has('Mobile')) || has('Silk');
+isMobile = !isTablet && (isIPod || isIPhone || isAndroid || has('IEMobile'));
+})((globalThis['navigator'] && globalThis['navigator']['userAgent']) || '');
+
+/** @const {string}
+ * @alias Blockly.utils.userAgent.raw
+ */
+exports.raw = rawUserAgent;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.IE
+ */
+exports.IE = isIe;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.EDGE
+ */
+exports.EDGE = isEdge;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.JavaFx
+ */
+exports.JavaFx = isJavaFx;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.CHROME
+ */
+exports.CHROME = isChrome;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.WEBKIT
+ */
+exports.WEBKIT = isWebKit;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.GECKO
+ */
+exports.GECKO = isGecko;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.ANDROID
+ */
+exports.ANDROID = isAndroid;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.IPAD
+ */
+exports.IPAD = isIPad;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.IPOD
+ */
+exports.IPOD = isIPod;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.IPHONE
+ */
+exports.IPHONE = isIPhone;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.MAC
+ */
+exports.MAC = isMac;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.TABLET
+ */
+exports.TABLET = isTablet;
+
+/** @const {boolean}
+ * @alias Blockly.utils.userAgent.MOBILE
+ */
+exports.MOBILE = isMobile;

@@ -1,18 +1,7 @@
 /**
 
  * Copyright 2017 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -46,7 +35,7 @@ Minimap.init = function(workspace, minimap) {
     // New code starts from here.
 
     // Get the absolutePosition.
-    var absolutePosition = (this.handlePosition_ / this.ratio_);
+    var absolutePosition = (this.handlePosition_ / this.ratio);
 
     // Firing the scroll change listener.
     Minimap.onScrollChange(absolutePosition, this.horizontal_);
@@ -61,7 +50,7 @@ Minimap.init = function(workspace, minimap) {
     // New code starts from here.
 
     // Get the absolutePosition.
-    var absolutePosition = (this.handlePosition_ / this.ratio_);
+    var absolutePosition = (this.handlePosition_ / this.ratio);
 
     // Firing the scroll change listener.
     Minimap.onScrollChange(absolutePosition, this.horizontal_);
@@ -102,8 +91,9 @@ Minimap.init = function(workspace, minimap) {
   this.mapDragger = this.svg.childNodes[0];
 
   // Adding mouse events to the rectangle, to make it Draggable.
-  // Using Blockly.bindEvent_ to attach mouse/touch listeners.
-  Blockly.bindEvent_(this.mapDragger, 'mousedown', null, Minimap.mousedown);
+  // Using Blockly.browserEvents.bind to attach mouse/touch listeners.
+  Blockly.browserEvents.bind(
+      this.mapDragger, 'mousedown', null, Minimap.mousedown);
 
   //When the window change, we need to resize the minimap window.
   window.addEventListener('resize', Minimap.repositionMinimap);
@@ -116,11 +106,11 @@ Minimap.init = function(workspace, minimap) {
 };
 
 Minimap.mousedown = function(e) {
-  // Using Blockly.bindEvent_ to attach mouse/touch listeners.
-  Minimap.mouseMoveBindData =
-      Blockly.bindEvent_(document, 'mousemove', null, Minimap.mousemove);
+  // Using Blockly.browserEvents.bind to attach mouse/touch listeners.
+  Minimap.mouseMoveBindData = Blockly.browserEvents.bind(
+      document, 'mousemove', null, Minimap.mousemove);
   Minimap.mouseUpBindData =
-      Blockly.bindEvent_(document, 'mouseup', null, Minimap.mouseup);
+      Blockly.browserEvents.bind(document, 'mouseup', null, Minimap.mouseup);
 
   Minimap.isDragging = true;
   e.stopPropagation();
@@ -129,8 +119,8 @@ Minimap.mousedown = function(e) {
 Minimap.mouseup = function(e) {
   Minimap.isDragging = false;
   // Removing listeners.
-  Blockly.unbindEvent_(Minimap.mouseUpBindData);
-  Blockly.unbindEvent_(Minimap.mouseMoveBindData);
+  Blockly.browserEvents.unbind(Minimap.mouseUpBindData);
+  Blockly.browserEvents.unbind(Minimap.mouseMoveBindData);
   Minimap.updateMapDragger(e);
   e.stopPropagation();
 };
@@ -144,10 +134,11 @@ Minimap.mousemove = function(e) {
 
 /**
  * Run non-UI events from the main workspace on the minimap.
- * @param {!Event} event Event that triggered in the main workspace.
+ * @param {!Blockly.Events.Abstract} event Event that triggered in the main
+ *    workspace.
  */
 Minimap.mirrorEvent = function(event) {
-  if (event.type == Blockly.Events.UI) {
+  if (event.isUiEvent) {
     return;  // Don't mirror UI events.
   }
   // Convert event to JSON.  This could then be transmitted across the net.

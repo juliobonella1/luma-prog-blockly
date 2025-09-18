@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2012 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -24,12 +13,12 @@
 goog.provide('Blockly.Blocks.procedures');
 
 goog.require('Blockly');
-goog.require('Blockly.Blocks');
 goog.require('Blockly.Comment');
 goog.require('Blockly.FieldCheckbox');
 goog.require('Blockly.FieldLabel');
 goog.require('Blockly.FieldTextInput');
 goog.require('Blockly.Mutator');
+goog.require('Blockly.Warning');
 
 
 Blockly.Blocks['procedures_defnoreturn'] = {
@@ -38,7 +27,8 @@ Blockly.Blocks['procedures_defnoreturn'] = {
    * @this {Blockly.Block}
    */
   init: function() {
-    var nameField = new Blockly.FieldTextInput('',
+    var initName = Blockly.Procedures.findLegalName('', this);
+    var nameField = new Blockly.FieldTextInput(initName,
         Blockly.Procedures.rename);
     nameField.setSpellcheck(false);
     this.appendDummyInput()
@@ -104,6 +94,7 @@ Blockly.Blocks['procedures_defnoreturn'] = {
   },
   /**
    * Create XML to represent the argument inputs.
+   * Backwards compatible serialization implementation.
    * @param {boolean=} opt_paramIds If true include the IDs of the parameter
    *     quarks.  Used by Blockly.Procedures.mutateCallers for reconnection.
    * @return {!Element} XML storage element.
@@ -133,13 +124,14 @@ Blockly.Blocks['procedures_defnoreturn'] = {
   },
   /**
    * Parse XML to restore the argument inputs.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
   domToMutation: function(xmlElement) {
     this.arguments_ = [];
     this.argumentVarModels_ = [];
-    for (var i = 0, childNode; childNode = xmlElement.childNodes[i]; i++) {
+    for (var i = 0, childNode; (childNode = xmlElement.childNodes[i]); i++) {
       if (childNode.nodeName.toLowerCase() == 'arg') {
         var varName = childNode.getAttribute('name');
         var varId = childNode.getAttribute('varid') || childNode.getAttribute('varId');
@@ -158,6 +150,54 @@ Blockly.Blocks['procedures_defnoreturn'] = {
 
     // Show or hide the statement input.
     this.setStatements_(xmlElement.getAttribute('statements') !== 'false');
+  },
+  /**
+   * Returns the state of this block as a JSON serializable object.
+   * @return {?{params: (!Array<{name: string, id: string}>|undefined),
+   *     hasStatements: (boolean|undefined)}} The state of this block, eg the
+   *     parameters and statements.
+   */
+  saveExtraState: function() {
+    if (!this.argumentVarModels_.length && this.hasStatements_) {
+      return null;
+    }
+    var state = Object.create(null);
+    if (this.argumentVarModels_.length) {
+      state['params'] = [];
+      for (var i = 0; i < this.argumentVarModels_.length; i++) {
+        state['params'].push({
+          // We don't need to serialize the name, but just in case we decide
+          // to separate params from variables.
+          'name': this.argumentVarModels_[i].name,
+          'id': this.argumentVarModels_[i].getId()
+        });
+      }
+    }
+    if (!this.hasStatements_) {
+      state['hasStatements'] = false;
+    }
+    return state;
+  },
+  /**
+   * Applies the given state to this block.
+   * @param {*} state The state to apply to this block, eg the parameters and
+   *     statements.
+   */
+  loadExtraState: function(state) {
+    this.arguments_ = [];
+    this.argumentVarModels_ = [];
+    if (state['params']) {
+      for (var i = 0; i < state['params'].length; i++) {
+        var param = state['params'][i];
+        var variable = Blockly.Variables.getOrCreateVariablePackage(
+            this.workspace, param['id'], param['name'], '');
+        this.arguments_.push(variable.name);
+        this.argumentVarModels_.push(variable);
+      }
+    }
+    this.updateParams_();
+    Blockly.Procedures.mutateCallers(this);
+    this.setStatements_(state['hasStatements'] === false ? false : true);
   },
   /**
    * Populate the mutator's dialog with this block's components.
@@ -223,7 +263,7 @@ Blockly.Blocks['procedures_defnoreturn'] = {
     this.paramIds_ = [];
     this.argumentVarModels_ = [];
     var paramBlock = containerBlock.getInputTargetBlock('STACK');
-    while (paramBlock) {
+    while (paramBlock && !paramBlock.isInsertionMarker()) {
       var varName = paramBlock.getFieldValue('NAME');
       this.arguments_.push(varName);
       var variable = this.workspace.getVariable(varName, '');
@@ -273,7 +313,7 @@ Blockly.Blocks['procedures_defnoreturn'] = {
   },
   /**
    * Return all variables referenced by this block.
-   * @return {!Array.<string>} List of variable names.
+   * @return {!Array<string>} List of variable names.
    * @this {Blockly.Block}
    */
   getVars: function() {
@@ -281,7 +321,7 @@ Blockly.Blocks['procedures_defnoreturn'] = {
   },
   /**
    * Return all variables referenced by this block.
-   * @return {!Array.<!Blockly.VariableModel>} List of variable models.
+   * @return {!Array<!Blockly.VariableModel>} List of variable models.
    * @this {Blockly.Block}
    */
   getVarModels: function() {
@@ -354,7 +394,7 @@ Blockly.Blocks['procedures_defnoreturn'] = {
     // Update the mutator's variables if the mutator is open.
     if (this.mutator && this.mutator.isVisible()) {
       var blocks = this.mutator.workspace_.getAllBlocks(false);
-      for (var i = 0, block; block = blocks[i]; i++) {
+      for (var i = 0, block; (block = blocks[i]); i++) {
         if (block.type == 'procedures_mutatorarg' &&
             Blockly.Names.equals(oldName, block.getFieldValue('NAME'))) {
           block.setFieldValue(newName, 'NAME');
@@ -415,7 +455,8 @@ Blockly.Blocks['procedures_defreturn'] = {
    * @this {Blockly.Block}
    */
   init: function() {
-    var nameField = new Blockly.FieldTextInput('',
+    var initName = Blockly.Procedures.findLegalName('', this);
+    var nameField = new Blockly.FieldTextInput(initName,
         Blockly.Procedures.rename);
     nameField.setSpellcheck(false);
     this.appendDummyInput()
@@ -444,6 +485,8 @@ Blockly.Blocks['procedures_defreturn'] = {
   updateParams_: Blockly.Blocks['procedures_defnoreturn'].updateParams_,
   mutationToDom: Blockly.Blocks['procedures_defnoreturn'].mutationToDom,
   domToMutation: Blockly.Blocks['procedures_defnoreturn'].domToMutation,
+  saveExtraState: Blockly.Blocks['procedures_defnoreturn'].saveExtraState,
+  loadExtraState: Blockly.Blocks['procedures_defnoreturn'].loadExtraState,
   decompose: Blockly.Blocks['procedures_defnoreturn'].decompose,
   compose: Blockly.Blocks['procedures_defnoreturn'].compose,
   /**
@@ -482,71 +525,6 @@ Blockly.Blocks['procedures_mutatorcontainer'] = {
     this.setTooltip(Blockly.Msg['PROCEDURES_MUTATORCONTAINER_TOOLTIP']);
     this.contextMenu = false;
   },
-
-  // TODO: Move this to a validator on the arg blocks, that way it can be
-  //  tested.
-  /**
-   * This will create & delete variables and in dialogs workspace to ensure
-   * that when a new block is dragged out it will have a unique parameter name.
-   * @param {!Blockly.Events.Abstract} event Change event.
-   * @this {Blockly.Block}
-   */
-  onchange: function(event) {
-    if (!this.workspace || this.workspace.isFlyout ||
-        (event.type != Blockly.Events.BLOCK_DELETE && event.type != Blockly.Events.BLOCK_CREATE)) {
-      return;
-    }
-    var blocks = this.workspace.getAllBlocks();
-    var allVariables = this.workspace.getAllVariables();
-    if (event.type == Blockly.Events.BLOCK_DELETE) {
-      var variableNamesToKeep = [];
-      for (var i = 0; i < blocks.length; i += 1) {
-        if (blocks[i].getFieldValue('NAME')) {
-          variableNamesToKeep.push(blocks[i].getFieldValue('NAME'));
-        }
-      }
-      for (var k = 0; k < allVariables.length; k += 1) {
-        if (variableNamesToKeep.indexOf(allVariables[k].name) == -1) {
-          this.workspace.deleteVariableById(allVariables[k].getId());
-        }
-      }
-      return;
-    }
-
-    if (event.type != Blockly.Events.BLOCK_CREATE) {
-      return;
-    }
-
-    var block = this.workspace.getBlockById(event.blockId);
-    // This is to handle the one none variable block
-    // Happens when all the blocks are regenerated
-    if (!block.getField('NAME')) {
-      return;
-    }
-    var varName = block.getFieldValue('NAME');
-    var variable = this.workspace.getVariable(varName);
-
-    if (!variable) {
-      // This means the parameter name is not in use and we can create the variable.
-      variable = this.workspace.createVariable(varName);
-    }
-    // If the blocks are connected we don't have to check duplicate variables
-    // This only happens if the dialog box is open
-    if (block.previousConnection.isConnected() || block.nextConnection.isConnected()) {
-      return;
-    }
-
-    for (var j = 0; j < blocks.length; j += 1) {
-      // filter block that was created
-      if (block.id != blocks[j].id && blocks[j].getFieldValue('NAME') == variable.name) {
-        // generate new name and set name field
-        varName = Blockly.Variables.generateUniqueName(this.workspace);
-        variable = this.workspace.createVariable(varName);
-        block.setFieldValue(variable.name, 'NAME');
-        return;
-      }
-    }
-  }
 };
 
 Blockly.Blocks['procedures_mutatorarg'] = {
@@ -555,7 +533,8 @@ Blockly.Blocks['procedures_mutatorarg'] = {
    * @this {Blockly.Block}
    */
   init: function() {
-    var field = new Blockly.FieldTextInput('x', this.validator_);
+    var field = new Blockly.FieldTextInput(
+        Blockly.Procedures.DEFAULT_ARG, this.validator_);
     // Hack: override showEditor to do just a little bit more work.
     // We don't have a good place to hook into the start of a text edit.
     field.oldShowEditorFn_ = field.showEditor_;
@@ -591,7 +570,7 @@ Blockly.Blocks['procedures_mutatorarg'] = {
    * @param {string} varName User-supplied name.
    * @return {?string} Valid name, or null if a name was not specified.
    * @private
-   * @this Blockly.FieldTextInput
+   * @this {Blockly.FieldTextInput}
    */
   validator_: function(varName) {
     var sourceBlock = this.getSourceBlock();
@@ -602,14 +581,25 @@ Blockly.Blocks['procedures_mutatorarg'] = {
     }
 
     // Prevents duplicate parameter names in functions
-    var blocks = sourceBlock.workspace.getAllBlocks();
+    var workspace = sourceBlock.workspace.targetWorkspace ||
+        sourceBlock.workspace;
+    var blocks = workspace.getAllBlocks(false);
+    var caselessName = varName.toLowerCase();
     for (var i = 0; i < blocks.length; i++) {
       if (blocks[i].id == this.getSourceBlock().id) {
         continue;
       }
-      if (blocks[i].getFieldValue('NAME') == varName) {
+      // Other blocks values may not be set yet when this is loaded.
+      var otherVar = blocks[i].getFieldValue('NAME');
+      if (otherVar && otherVar.toLowerCase() == caselessName) {
         return null;
       }
+    }
+
+    // Don't create variables for arg blocks that
+    // only exist in the mutator's flyout.
+    if (sourceBlock.isInFlyout) {
+      return varName;
     }
 
     var model = outerWs.getVariable(varName, '');
@@ -625,13 +615,14 @@ Blockly.Blocks['procedures_mutatorarg'] = {
     }
     return varName;
   },
+
   /**
    * Called when focusing away from the text field.
    * Deletes all variables that were created as the user typed their intended
    * variable name.
    * @param {string} newText The new variable name.
    * @private
-   * @this Blockly.FieldTextInput
+   * @this {Blockly.FieldTextInput}
    */
   deleteIntermediateVars_: function(newText) {
     var outerWs = Blockly.Mutator.findParentWs(this.getSourceBlock().workspace);
@@ -654,7 +645,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
    */
   init: function() {
     this.appendDummyInput('TOPROW')
-        .appendField(this.id, 'NAME');
+        .appendField('', 'NAME');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setStyle('procedure_blocks');
@@ -694,8 +685,8 @@ Blockly.Blocks['procedures_callnoreturn'] = {
   },
   /**
    * Notification that the procedure's parameters have changed.
-   * @param {!Array.<string>} paramNames New param names, e.g. ['x', 'y', 'z'].
-   * @param {!Array.<string>} paramIds IDs of params (consistent for each
+   * @param {!Array<string>} paramNames New param names, e.g. ['x', 'y', 'z'].
+   * @param {!Array<string>} paramIds IDs of params (consistent for each
    *     parameter through the life of a mutator, regardless of param renaming),
    *     e.g. ['piua', 'f8b_', 'oi.o'].
    * @private
@@ -836,6 +827,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
   },
   /**
    * Create XML to represent the (non-editable) name and arguments.
+   * Backwards compatible serialization implementation.
    * @return {!Element} XML storage element.
    * @this {Blockly.Block}
    */
@@ -851,6 +843,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
   },
   /**
    * Parse XML to restore the (non-editable) name and parameters.
+   * Backwards compatible serialization implementation.
    * @param {!Element} xmlElement XML storage element.
    * @this {Blockly.Block}
    */
@@ -859,7 +852,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
     this.renameProcedure(this.getProcedureCall(), name);
     var args = [];
     var paramIds = [];
-    for (var i = 0, childNode; childNode = xmlElement.childNodes[i]; i++) {
+    for (var i = 0, childNode; (childNode = xmlElement.childNodes[i]); i++) {
       if (childNode.nodeName.toLowerCase() == 'arg') {
         args.push(childNode.getAttribute('name'));
         paramIds.push(childNode.getAttribute('paramId'));
@@ -868,8 +861,44 @@ Blockly.Blocks['procedures_callnoreturn'] = {
     this.setProcedureParameters_(args, paramIds);
   },
   /**
+   * Returns the state of this block as a JSON serializable object.
+   * @return {{name: string, params:(!Array<string>|undefined)}} The state of
+   *     this block, ie the params and procedure name.
+   */
+  saveExtraState: function() {
+    var state = Object.create(null);
+    state['name'] = this.getProcedureCall();
+    if (this.arguments_.length) {
+      state['params'] = this.arguments_;
+    }
+    return state;
+  },
+  /**
+   * Applies the given state to this block.
+   * @param {*} state The state to apply to this block, ie the params and
+   *     procedure name.
+   */
+  loadExtraState: function(state) {
+    this.renameProcedure(this.getProcedureCall(), state['name']);
+    const params = state['params'];
+    if (params) {
+      const ids = [];
+      ids.length = params.length;
+      ids.fill(null);
+      this.setProcedureParameters_(params, ids);
+    }
+  },
+  /**
    * Return all variables referenced by this block.
-   * @return {!Array.<!Blockly.VariableModel>} List of variable models.
+   * @return {!Array<string>} List of variable names.
+   * @this {Blockly.Block}
+   */
+  getVars: function() {
+    return this.arguments_;
+  },
+  /**
+   * Return all variables referenced by this block.
+   * @return {!Array<!Blockly.VariableModel>} List of variable models.
    * @this {Blockly.Block}
    */
   getVarModels: function() {
@@ -898,7 +927,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
       var name = this.getProcedureCall();
       var def = Blockly.Procedures.getDefinition(name, this.workspace);
       if (def && (def.type != this.defType_ ||
-          JSON.stringify(def.arguments_) != JSON.stringify(this.arguments_))) {
+          JSON.stringify(def.getVars()) != JSON.stringify(this.arguments_))) {
         // The signatures don't match.
         def = null;
       }
@@ -927,8 +956,13 @@ Blockly.Blocks['procedures_callnoreturn'] = {
         block.appendChild(mutation);
         var field = Blockly.utils.xml.createElement('field');
         field.setAttribute('name', 'NAME');
-        field.appendChild(Blockly.utils.xml.createTextNode(
-            this.getProcedureCall()));
+        var callName = this.getProcedureCall();
+        if (!callName) {
+          // Rename if name is empty string.
+          callName = Blockly.Procedures.findLegalName('', this);
+          this.renameProcedure('', callName);
+        }
+        field.appendChild(Blockly.utils.xml.createTextNode(callName));
         block.appendChild(field);
         xml.appendChild(block);
         Blockly.Xml.domToWorkspace(xml, this.workspace);
@@ -942,7 +976,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
       var def = Blockly.Procedures.getDefinition(name, this.workspace);
       if (!def) {
         Blockly.Events.setGroup(event.group);
-        this.dispose(true, false);
+        this.dispose(true);
         Blockly.Events.setGroup(false);
       }
     } else if (event.type == Blockly.Events.CHANGE && event.element == 'disabled') {
@@ -952,7 +986,7 @@ Blockly.Blocks['procedures_callnoreturn'] = {
         // in most cases the old group should be ''
         var oldGroup = Blockly.Events.getGroup();
         if (oldGroup) {
-          // This should only be possible programatically and may indicate a problem
+          // This should only be possible programmatically and may indicate a problem
           // with event grouping. If you see this message please investigate. If the
           // use ends up being valid we may need to reorder events in the undo stack.
           console.log('Saw an existing group while responding to a definition change');
@@ -1009,6 +1043,7 @@ Blockly.Blocks['procedures_callreturn'] = {
     // Tooltip is set in domToMutation.
     this.setHelpUrl(Blockly.Msg['PROCEDURES_CALLRETURN_HELPURL']);
     this.arguments_ = [];
+    this.argumentVarModels_ = [];
     this.quarkConnections_ = {};
     this.quarkIds_ = null;
     this.previousEnabledState_ = true;
@@ -1021,6 +1056,9 @@ Blockly.Blocks['procedures_callreturn'] = {
   updateShape_: Blockly.Blocks['procedures_callnoreturn'].updateShape_,
   mutationToDom: Blockly.Blocks['procedures_callnoreturn'].mutationToDom,
   domToMutation: Blockly.Blocks['procedures_callnoreturn'].domToMutation,
+  saveExtraState: Blockly.Blocks['procedures_callnoreturn'].saveExtraState,
+  loadExtraState: Blockly.Blocks['procedures_callnoreturn'].loadExtraState,
+  getVars: Blockly.Blocks['procedures_callnoreturn'].getVars,
   getVarModels: Blockly.Blocks['procedures_callnoreturn'].getVarModels,
   onchange: Blockly.Blocks['procedures_callnoreturn'].onchange,
   customContextMenu:
@@ -1071,6 +1109,12 @@ Blockly.Blocks['procedures_ifreturn'] = {
           .appendField(Blockly.Msg['PROCEDURES_DEFRETURN_RETURN']);
     }
   },
+
+  // This block does not need JSO serialization hooks (saveExtraState and
+  // loadExtraState) because the state of this block is already encoded in the
+  // block's position in the workspace.
+  // XML hooks are kept for backwards compatibility.
+
   /**
    * Called whenever anything on the workspace changes.
    * Add warning if this flow block is not nested inside a loop.
@@ -1078,7 +1122,7 @@ Blockly.Blocks['procedures_ifreturn'] = {
    * @this {Blockly.Block}
    */
   onchange: function(_e) {
-    if (!this.workspace.isDragging || this.workspace.isDragging()) {
+    if (this.workspace.isDragging && this.workspace.isDragging()) {
       return;  // Don't change state at the start of a drag.
     }
     var legal = false;

@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -108,15 +97,11 @@ FactoryUtils.getGeneratorStub = function(block, generatorLanguage) {
         // Subclass of Blockly.FieldDropdown, must test first.
         code.push(makeVar('variable', name) +
                   " = Blockly." + language +
-                  ".variableDB_.getName(block.getFieldValue('" + name +
+                  ".nameDB_.getName(block.getFieldValue('" + name +
                   "'), Blockly.Variables.NAME_TYPE);");
       } else if (field instanceof Blockly.FieldAngle) {
         // Subclass of Blockly.FieldTextInput, must test first.
         code.push(makeVar('angle', name) +
-                  " = block.getFieldValue('" + name + "');");
-      } else if (Blockly.FieldDate && field instanceof Blockly.FieldDate) {
-        // Blockly.FieldDate may not be compiled into Blockly.
-        code.push(makeVar('date', name) +
                   " = block.getFieldValue('" + name + "');");
       } else if (field instanceof Blockly.FieldColour) {
         code.push(makeVar('colour', name) +
@@ -174,7 +159,7 @@ FactoryUtils.getGeneratorStub = function(block, generatorLanguage) {
  * Update the language code as JSON.
  * @param {string} blockType Name of block.
  * @param {!Blockly.Block} rootBlock Factory_base block.
- * @return {string} Generanted language code.
+ * @return {string} Generated language code.
  * @private
  */
 FactoryUtils.formatJson_ = function(blockType, rootBlock) {
@@ -392,7 +377,7 @@ FactoryUtils.connectionLineJs_ = function(functionName, typeName, workspace) {
 /**
  * Returns field strings and any config.
  * @param {!Blockly.Block} block Input block.
- * @return {!Array.<string>} Field strings.
+ * @return {!Array<string>} Field strings.
  * @private
  */
 FactoryUtils.getFieldsJs_ = function(block) {
@@ -457,12 +442,6 @@ FactoryUtils.getFieldsJs_ = function(block) {
               '), ' +
               JSON.stringify(block.getFieldValue('FIELDNAME')));
           break;
-        case 'field_date':
-          // Result: new Blockly.FieldDate('2015-02-04'), 'DATE'
-          fields.push('new Blockly.FieldDate(' +
-              JSON.stringify(block.getFieldValue('DATE')) + '), ' +
-              JSON.stringify(block.getFieldValue('FIELDNAME')));
-          break;
         case 'field_variable':
           // Result: new Blockly.FieldVariable('item'), 'VAR'
           var varname
@@ -505,7 +484,7 @@ FactoryUtils.getFieldsJs_ = function(block) {
 /**
  * Returns field strings and any config.
  * @param {!Blockly.Block} block Input block.
- * @return {!Array.<string|!Object>} Array of static text and field configs.
+ * @return {!Array<string|!Object>} Array of static text and field configs.
  * @private
  */
 FactoryUtils.getFieldsJson_ = function(block) {
@@ -572,13 +551,6 @@ FactoryUtils.getFieldsJson_ = function(block) {
             colour: block.getFieldValue('COLOUR')
           });
           break;
-        case 'field_date':
-          fields.push({
-            type: block.type,
-            name: block.getFieldValue('FIELDNAME'),
-            date: block.getFieldValue('DATE')
-          });
-          break;
         case 'field_variable':
           fields.push({
             type: block.type,
@@ -642,7 +614,7 @@ FactoryUtils.getOptTypesFrom = function(block, name) {
  * Fetch the type(s) defined in the given input.
  * @param {!Blockly.Block} block Block with input.
  * @param {string} name Name of the input.
- * @return {!Array.<string>} List of types.
+ * @return {!Array<string>} List of types.
  * @private
  */
 FactoryUtils.getTypesFrom_ = function(block, name) {
@@ -773,7 +745,7 @@ FactoryUtils.getBlockTypeFromJsDefinition = function(blockDef) {
 
 /**
  * Generates a category containing blocks of the specified block types.
- * @param {!Array.<!Blockly.Block>} blocks Blocks to include in the category.
+ * @param {!Array<!Blockly.Block>} blocks Blocks to include in the category.
  * @param {string} categoryName Name to use for the generated category.
  * @return {!Element} Category XML containing the given block types.
  */
@@ -799,7 +771,7 @@ FactoryUtils.generateCategoryXml = function(blocks, categoryName) {
  * Parses a string containing JavaScript block definition(s) to create an array
  * in which each element is a single block definition.
  * @param {string} blockDefsString JavaScript block definition(s).
- * @return {!Array.<string>} Array of block definitions.
+ * @return {!Array<string>} Array of block definitions.
  */
 FactoryUtils.parseJsBlockDefinitions = function(blockDefsString) {
   var blockDefArray = [];
@@ -825,7 +797,7 @@ FactoryUtils.parseJsBlockDefinitions = function(blockDefsString) {
  * JSON objects.
  * @param {string} blockDefsString String containing JSON block
  *    definition(s).
- * @return {!Array.<string>} Array of block definitions.
+ * @return {!Array<string>} Array of block definitions.
  */
 FactoryUtils.parseJsonBlockDefinitions = function(blockDefsString) {
   var blockDefArray = [];
@@ -841,7 +813,7 @@ FactoryUtils.parseJsonBlockDefinitions = function(blockDefsString) {
     else if (currentChar == '}') {
       unbalancedBracketCount--;
       if (unbalancedBracketCount == 0 && i > 0) {
-        // The brackets are balanced. We've got a complete block defintion.
+        // The brackets are balanced. We've got a complete block definition.
         var blockDef = blockDefsString.substring(defStart, i + 1);
         blockDefArray.push(blockDef);
         defStart = i + 1;
@@ -855,7 +827,7 @@ FactoryUtils.parseJsonBlockDefinitions = function(blockDefsString) {
  * Define blocks from imported block definitions.
  * @param {string} blockDefsString Block definition(s).
  * @param {string} format Block definition format ('JSON' or 'JavaScript').
- * @return {!Array.<!Element>} Array of block types defined.
+ * @return {!Array<!Element>} Array of block types defined.
  */
 FactoryUtils.defineAndGetBlockTypes = function(blockDefsString, format) {
   var blockTypes = [];
@@ -988,7 +960,7 @@ FactoryUtils.cleanXml = function(xml) {
   return newXml;
 };
 
-/*
+/**
  * Checks if a block has a variable field. Blocks with variable fields cannot
  * be shadow blocks.
  * @param {Blockly.Block} block The block to check if a variable field exists.

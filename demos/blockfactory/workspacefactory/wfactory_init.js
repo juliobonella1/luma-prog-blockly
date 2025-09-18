@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2016 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -63,7 +52,7 @@ WorkspaceFactoryInit.initColourPicker_ = function(controller) {
   // Convert hue numbers to RRGGBB strings.
   for (var i = 0; i < colours.length; i++) {
     if (colours[i] !== '') {
-      colours[i] = Blockly.hueToHex(colours[i]).substring(1);
+      colours[i] = Blockly.utils.colour.hueToHex(colours[i]).substring(1);
     }
   }
   // Convert to 2D array.
@@ -250,8 +239,8 @@ WorkspaceFactoryInit.assignWorkspaceFactoryClickHandlers_ =
           return;
         }
         document.getElementById('categoryName').value = selected.name;
-        document.getElementById('categoryColour').value = selected.color ?
-            selected.color.substring(1).toLowerCase() : '';
+        document.getElementById('categoryColour').value = selected.colour ?
+            selected.colour.substring(1).toLowerCase() : '';
         console.log(document.getElementById('categoryColour').value);
         // Link the colour picker to the field.
         cp_init('categoryColour');
@@ -285,7 +274,7 @@ WorkspaceFactoryInit.assignWorkspaceFactoryClickHandlers_ =
 
         // Disable shadow editing button if turning invalid shadow block back
         // to normal block.
-        if (!Blockly.selected.getSurroundParent()) {
+        if (!Blockly.common.getSelected().getSurroundParent()) {
           document.getElementById('button_addShadow').disabled = true;
         }
       });
@@ -356,9 +345,9 @@ WorkspaceFactoryInit.addWorkspaceFactoryEventListeners_ = function(controller) {
     // Only enable "Edit Block" when a block is selected and it has a
     // surrounding parent, meaning it is nested in another block (blocks that
     // are not nested in parents cannot be shadow blocks).
-    if (e.type == Blockly.Events.BLOCK_MOVE || (e.type == Blockly.Events.UI &&
-        e.element == 'selected')) {
-      var selected = Blockly.selected;
+    if (e.type == Blockly.Events.BLOCK_MOVE ||
+        e.type == Blockly.Events.SELECTED) {
+      var selected = Blockly.common.getSelected();
 
       // Show shadow button if a block is selected. Show "Add Shadow" if
       // a block is not a shadow block, show "Remove Shadow" if it is a

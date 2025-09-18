@@ -1,18 +1,7 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -22,92 +11,45 @@
  */
 'use strict';
 
-goog.provide('Blockly.Cursor');
+goog.module('Blockly.Cursor');
 
+const object = goog.require('Blockly.utils.object');
+const registry = goog.require('Blockly.registry');
+const {ASTNode} = goog.require('Blockly.ASTNode');
+const {Marker} = goog.require('Blockly.Marker');
 
 /**
  * Class for a cursor.
  * A cursor controls how a user navigates the Blockly AST.
  * @constructor
+ * @extends {Marker}
  */
-Blockly.Cursor = function() {
-  /*
-   * The current location of the cursor.
-   * @type {Blockly.ASTNode}
-   * @private
-   */
-  this.curNode_ = null;
+const Cursor = function() {
+  Cursor.superClass_.constructor.call(this);
 
   /**
-   * The object in charge of drawing the visual representation of the current node.
-   * @type {Blockly.CursorSvg}
-   * @private
+   * @override
    */
-  this.drawer_ = null;
+  this.type = 'cursor';
 };
-
-/**
- * Sets the object in charge of drawing the cursor.
- * @param {Blockly.CursorSvg} drawer The object in charge of drawing the cursor.
- */
-Blockly.Cursor.prototype.setDrawer = function(drawer) {
-  this.drawer_ = drawer;
-};
-
-/**
- * Get the current drawer for the cursor.
- * @return {Blockly.CursorSvg} The object in charge of drawing the cursor.
- */
-Blockly.Cursor.prototype.getDrawer = function() {
-  return this.drawer_;
-};
-
-/**
- * Gets the current location of the cursor.
- * @return {Blockly.ASTNode} The current field, connection, or block the cursor
- *     is on.
- */
-Blockly.Cursor.prototype.getCurNode = function() {
-  return this.curNode_;
-};
-
-/**
- * Set the location of the cursor and call the update method.
- * Setting isStack to true will only work if the newLocation is the top most
- * output or previous connection on a stack.
- * @param {Blockly.ASTNode} newNode The new location of the cursor.
- */
-Blockly.Cursor.prototype.setCurNode = function(newNode) {
-  this.curNode_ = newNode;
-  if (this.drawer_) {
-    this.drawer_.draw(this.getCurNode());
-  }
-};
-
-/**
- * Hide the cursor SVG.
- */
-Blockly.Cursor.prototype.hide = function() {
-  if (this.drawer_) {
-    this.drawer_.hide();
-  }
-};
+object.inherits(Cursor, Marker);
 
 /**
  * Find the next connection, field, or block.
- * @return {Blockly.ASTNode} The next element, or null if the current node is
+ * @return {ASTNode} The next element, or null if the current node is
  *     not set or there is no next value.
+ * @public
  */
-Blockly.Cursor.prototype.next = function() {
-  var curNode = this.getCurNode();
+Cursor.prototype.next = function() {
+  const curNode = this.getCurNode();
   if (!curNode) {
     return null;
   }
 
-  var newNode = curNode.next();
+  let newNode = curNode.next();
   while (newNode && newNode.next() &&
-    (newNode.getType() == Blockly.ASTNode.types.NEXT ||
-    newNode.getType() == Blockly.ASTNode.types.BLOCK)) {
+         (newNode.getType() == ASTNode.types.NEXT ||
+          newNode.getType() == ASTNode.types.BLOCK)) {
     newNode = newNode.next();
   }
 
@@ -119,21 +61,22 @@ Blockly.Cursor.prototype.next = function() {
 
 /**
  * Find the in connection or field.
- * @return {Blockly.ASTNode} The in element, or null if the current node is
+ * @return {ASTNode} The in element, or null if the current node is
  *     not set or there is no in value.
+ * @public
  */
-Blockly.Cursor.prototype.in = function() {
-  var curNode = this.getCurNode();
+Cursor.prototype.in = function() {
+  let curNode = this.getCurNode();
   if (!curNode) {
     return null;
   }
   // If we are on a previous or output connection, go to the block level before
   // performing next operation.
-  if (curNode.getType() == Blockly.ASTNode.types.PREVIOUS ||
-    curNode.getType() == Blockly.ASTNode.types.OUTPUT) {
+  if (curNode.getType() == ASTNode.types.PREVIOUS ||
+      curNode.getType() == ASTNode.types.OUTPUT) {
     curNode = curNode.next();
   }
-  var newNode = curNode.in();
+  const newNode = curNode.in();
 
   if (newNode) {
     this.setCurNode(newNode);
@@ -143,19 +86,20 @@ Blockly.Cursor.prototype.in = function() {
 
 /**
  * Find the previous connection, field, or block.
- * @return {Blockly.ASTNode} The previous element, or null if the current node
+ * @return {ASTNode} The previous element, or null if the current node
  *     is not set or there is no previous value.
+ * @public
  */
-Blockly.Cursor.prototype.prev = function() {
-  var curNode = this.getCurNode();
+Cursor.prototype.prev = function() {
+  const curNode = this.getCurNode();
   if (!curNode) {
     return null;
   }
-  var newNode = curNode.prev();
+  let newNode = curNode.prev();
 
   while (newNode && newNode.prev() &&
-    (newNode.getType() == Blockly.ASTNode.types.NEXT ||
-    newNode.getType() == Blockly.ASTNode.types.BLOCK)) {
+         (newNode.getType() == ASTNode.types.NEXT ||
+          newNode.getType() == ASTNode.types.BLOCK)) {
     newNode = newNode.prev();
   }
 
@@ -167,17 +111,18 @@ Blockly.Cursor.prototype.prev = function() {
 
 /**
  * Find the out connection, field, or block.
- * @return {Blockly.ASTNode} The out element, or null if the current node is
+ * @return {ASTNode} The out element, or null if the current node is
  *     not set or there is no out value.
+ * @public
  */
-Blockly.Cursor.prototype.out = function() {
-  var curNode = this.getCurNode();
+Cursor.prototype.out = function() {
+  const curNode = this.getCurNode();
   if (!curNode) {
     return null;
   }
-  var newNode = curNode.out();
+  let newNode = curNode.out();
 
-  if (newNode && newNode.getType() == Blockly.ASTNode.types.BLOCK) {
+  if (newNode && newNode.getType() == ASTNode.types.BLOCK) {
     newNode = newNode.prev() || newNode;
   }
 
@@ -186,3 +131,7 @@ Blockly.Cursor.prototype.out = function() {
   }
   return newNode;
 };
+
+registry.register(registry.Type.CURSOR, registry.DEFAULT, Cursor);
+
+exports.Cursor = Cursor;

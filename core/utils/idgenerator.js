@@ -1,44 +1,83 @@
 /**
  * @license
  * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
- * @fileoverview Generator for unique element IDs.
- * For UUIDs use Blockly.utils.genUid. The ID generator should primarily be
- * used for IDs that end up in the DOM.
+ * @fileoverview Generators for unique IDs.
  * @author samelh@google.com (Sam El-Husseini)
  */
 'use strict';
 
-goog.provide('Blockly.utils.IdGenerator');
+/**
+ * @name Blockly.utils.idGenerator
+ * @namespace
+ */
+goog.module('Blockly.utils.idGenerator');
 
+
+/**
+ * Namespace object for internal implementations we want to be able to
+ * stub in tests.
+ */
+const internal = {};
+exports.TEST_ONLY = internal;
 
 /**
  * Next unique ID to use.
  * @type {number}
- * @private
  */
-Blockly.utils.IdGenerator.nextId_ = 0;
+let nextId = 0;
 
 /**
- * Gets the next unique ID.
+ * Generate the next unique element IDs.
  * IDs are compatible with the HTML4 id attribute restrictions:
  * Use only ASCII letters, digits, '_', '-' and '.'
+ *
+ * For UUIDs use genUid (below) instead; this ID generator should
+ * primarily be used for IDs that end up in the DOM.
+ *
  * @return {string} The next unique identifier.
+ * @alias Blockly.utils.idGenerator.getNextUniqueId
  */
-Blockly.utils.IdGenerator.getNextUniqueId = function() {
-  return 'blockly:' + (Blockly.utils.IdGenerator.nextId_++).toString(36);
+const getNextUniqueId = function() {
+  return 'blockly-' + (nextId++).toString(36);
 };
+exports.getNextUniqueId = getNextUniqueId;
+
+/**
+ * Legal characters for the universally unique IDs.  Should be all on
+ * a US keyboard.  No characters that conflict with XML or JSON.
+ * Requests to remove additional 'problematic' characters from this
+ * soup will be denied.  That's your failure to properly escape in
+ * your own environment.  Issues #251, #625, #682, #1304.
+ */
+const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+/**
+ * Generate a random unique ID.  This should be globally unique.
+ * 87 characters ^ 20 length > 128 bits (better than a UUID).
+ * @return {string} A globally unique ID string.
+ */
+internal.genUid = function() {
+  const length = 20;
+  const soupLength = soup.length;
+  const id = [];
+  for (let i = 0; i < length; i++) {
+    id[i] = soup.charAt(Math.random() * soupLength);
+  }
+  return id.join('');
+};
+
+/**
+ * Generate a random unique ID.
+ * @see internal.genUid
+ * @return {string} A globally unique ID string.
+ * @alias Blockly.utils.idGenerator.genUid
+ */
+const genUid = function() {
+  return internal.genUid();
+};
+exports.genUid = genUid;
